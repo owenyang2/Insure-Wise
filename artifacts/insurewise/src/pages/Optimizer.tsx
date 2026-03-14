@@ -18,7 +18,8 @@ interface OptimizationTip {
   title: string;
   description: string;
   category: string;
-  estimatedSavings: string;
+  minSavings: number;
+  maxSavings: number;
   impact: "high" | "medium" | "low";
   actionLabel: string;
   profileField: string | null;
@@ -55,7 +56,10 @@ export default function Optimizer() {
   const userProfileId = useStore((state) => state.userProfileId);
 
   const { data: profile, isLoading: isProfileLoading } = useGetUserProfile({
-    query: { enabled: !!userProfileId }
+    query: {
+      enabled: !!userProfileId,
+      queryKey: ["getUserProfile"]
+    }
   });
 
   const [result, setResult] = useState<OptimizationResult | null>(null);
@@ -83,10 +87,7 @@ export default function Optimizer() {
   };
 
   const totalEstimatedSavings = result?.tips
-    .map(t => {
-      const nums = t.estimatedSavings.match(/\d+/g);
-      return nums ? Math.round((parseInt(nums[0]) + parseInt(nums[nums.length - 1])) / 2) : 0;
-    })
+    .map(t => Math.round((t.minSavings + t.maxSavings) / 2))
     .reduce((a, b) => a + b, 0) ?? 0;
 
   // ── No profile ─────────────────────────────────────────────────────────────
@@ -275,7 +276,7 @@ export default function Optimizer() {
                   const meta = CATEGORY_META[tip.category] ?? CATEGORY_META.safety;
                   return (
                     <motion.div
-                      key={tip.id}
+                      key={idx}
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.08 }}
@@ -309,7 +310,7 @@ export default function Optimizer() {
 
                         {/* Savings badge */}
                         <div className="shrink-0 text-right">
-                          <div className="text-xl font-bold text-emerald-600 whitespace-nowrap">{tip.estimatedSavings}</div>
+                          <div className="text-xl font-bold text-emerald-600 whitespace-nowrap">${tip.minSavings}–${tip.maxSavings}/mo</div>
                           <div className="text-xs text-muted-foreground">est. savings</div>
                         </div>
                       </div>

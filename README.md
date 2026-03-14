@@ -28,27 +28,30 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 
 ### Prerequisites
 
-- **Node.js** v18 or later
-- **pnpm** v9 or later — install with `npm install -g pnpm`
-- **PostgreSQL** — a local instance or a hosted connection string (e.g. [Neon](https://neon.tech), [Supabase](https://supabase.com))
-- **Anthropic API key** — get one at [console.anthropic.com](https://console.anthropic.com)
+- **Node.js** v20.19+ or v22.12+ (required by Vite). Check with `node -v`. If needed, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`.
+- **pnpm** v9+ — install with `npm install -g pnpm`, or use `npx pnpm` in place of `pnpm` for every command below.
+- **PostgreSQL** — local (see below) or a hosted DB (e.g. [Neon](https://neon.tech), [Supabase](https://supabase.com)).
+- **Anthropic API key** — optional for basic run; needed for Optimizer and Policy Explainer. Get one at [console.anthropic.com](https://console.anthropic.com).
 
 ### 1. Clone and install
 
 ```bash
 git clone <your-repo-url>
-cd insurewise
+cd Insure-Wise
 pnpm install
 ```
 
+(If `pnpm` is not found, use `npx pnpm install` instead.)
+
 ### 2. Set up environment variables
 
-Create two `.env` files:
+Create two `.env` files. The frontend dev script sets `PORT`/`BASE_PATH`/`API_PORT` by default, so the frontend `.env` is optional.
 
 **`artifacts/api-server/.env`**
 ```env
 PORT=3001
-DATABASE_URL=postgresql://user:password@localhost:5432/insurewise
+# Local Postgres — replace YOUR_USERNAME with your Mac/Linux username (run: whoami)
+DATABASE_URL=postgresql://YOUR_USERNAME@localhost:5432/insurewise
 
 # AI model — GPT-OSS 120B hosted on HuggingFace (OpenAI-compatible API)
 # No key required for the open hackathon server; set "test" or any value.
@@ -62,24 +65,42 @@ AI_MODEL=openai/gpt-oss-120b
 # AI_MODEL=gpt-4o-mini
 ```
 
-**`artifacts/insurewise/.env`**
+**`artifacts/insurewise/.env`** (optional — dev script has defaults)
 ```env
 PORT=5173
 BASE_PATH=/
 API_PORT=3001
 ```
 
-### 3. Set up the database
+### 3. Set up PostgreSQL (local)
+
+**Install and start (macOS with Homebrew):**
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+```
+
+**Create the database:**
+```bash
+createdb insurewise
+```
+
+**Point the app at it:** in `artifacts/api-server/.env`, set `DATABASE_URL=postgresql://YOUR_USERNAME@localhost:5432/insurewise` (replace `YOUR_USERNAME` with the output of `whoami`).
+
+### 4. Push the database schema
+
+`DATABASE_URL` must be set when running this (e.g. from your api-server `.env`):
 
 ```bash
+export $(grep -v '^#' artifacts/api-server/.env | xargs)
 pnpm --filter @workspace/db run push
 ```
 
-This pushes the schema (users, conversations, messages tables) to your PostgreSQL instance.
+This creates the users, conversations, and messages tables.
 
-### 4. Start both servers
+### 5. Start both servers
 
-Open two terminals:
+Open two terminals from the repo root.
 
 **Terminal 1 — API server:**
 ```bash
@@ -91,20 +112,21 @@ pnpm --filter @workspace/api-server run dev
 pnpm --filter @workspace/insurewise run dev
 ```
 
-Then open [http://localhost:5173](http://localhost:5173).
-
-The frontend proxies all `/api/*` requests to the API server on port 3001 automatically.
+Then open [http://localhost:5173](http://localhost:5173). The frontend proxies `/api/*` to the API server on port 3001.
 
 ### Running both with one command
 
-Install `concurrently` if you want a single command:
-
 ```bash
-npm install -g concurrently
-concurrently \
+npx concurrently \
   "pnpm --filter @workspace/api-server run dev" \
   "pnpm --filter @workspace/insurewise run dev"
 ```
+
+### Troubleshooting
+
+- **`pnpm: command not found`** — Use `npx pnpm` instead of `pnpm`, or run `npm install -g pnpm`.
+- **Node version / Vite errors** — Use Node 20.19+ or 22.12+: `nvm install 22 && nvm use 22`.
+- **"Cannot find native binding" or missing `@rollup/rollup-darwin-arm64` (and similar)** — The workspace allows Mac binaries; do a clean reinstall: `rm -rf node_modules && pnpm install`.
 
 ---
 

@@ -11,7 +11,10 @@ export default function Compare() {
   const [location, setLocation] = useLocation();
   const userProfileId = useStore((state) => state.userProfileId);
   const { data: profile, isLoading: isProfileLoading } = useGetUserProfile({
-    query: { enabled: !!userProfileId }
+    query: {
+      enabled: !!userProfileId,
+      queryKey: ["getUserProfile"]
+    }
   });
   
   const searchMutation = useSearchPolicies();

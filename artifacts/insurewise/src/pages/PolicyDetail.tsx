@@ -13,7 +13,10 @@ export default function PolicyDetail() {
   
   const userProfileId = useStore((state) => state.userProfileId);
   const { data: profile, isLoading: isProfileLoading } = useGetUserProfile({
-    query: { enabled: !!userProfileId }
+    query: {
+      enabled: !!userProfileId,
+      queryKey: ["getUserProfile"]
+    }
   });
 
   const explainMutation = useExplainPolicy();

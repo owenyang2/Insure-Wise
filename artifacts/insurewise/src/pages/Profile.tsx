@@ -58,7 +58,10 @@ export default function Profile() {
   const clearChat = useStore((state) => state.clearChat);
 
   const { data: profile, isLoading } = useGetUserProfile({
-    query: { enabled: !!userProfileId }
+    query: {
+      enabled: !!userProfileId,
+      queryKey: ["getUserProfile"]
+    }
   });
   const updateMutation = useUpsertUserProfile();
 

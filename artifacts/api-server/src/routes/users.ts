@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userProfilesTable } from "@workspace/db";
-import { UpsertUserProfileBody } from "@workspace/api-zod";
+import { schemas } from "@workspace/api-zod";
+const { UpsertUserProfileBody } = schemas;
 
 const router: IRouter = Router();
 
