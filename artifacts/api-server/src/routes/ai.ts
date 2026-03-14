@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
-import { AiChatBody } from "@workspace/api-zod";
+import { schemas } from "@workspace/api-zod";
+const { AiChatBody } = schemas;
 
 const router: IRouter = Router();
 
@@ -53,7 +54,7 @@ router.post("/ai/chat", async (req, res): Promise<void> => {
       max_tokens: 1024,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        ...messages.map(m => ({
+        ...messages.map((m: any) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         })),

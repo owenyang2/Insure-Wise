@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
-import { SearchPoliciesBody, ExplainPolicyBody, ExplainPolicyParams, GetApplicationFormBody, GetApplicationFormParams, SubmitApplicationBody } from "@workspace/api-zod";
-import { db, userProfilesTable } from "@workspace/db";
+import { schemas } from "@workspace/api-zod";
+const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody } = schemas;
+import { db, userProfilesTable, applicationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getPoliciesForType, scoreAndRankPolicies } from "../lib/mockPolicies.js";
 
@@ -21,19 +23,23 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
   const ranked = scoreAndRankPolicies(rawPolicies, priorities, budgetMonthly, requirements);
 
   const policies = ranked.map(p => {
-    const coveredReqs = requirements.filter(r => {
-      const key = r.toLowerCase();
+    const coveredReqs = requirements.filter((r: string) => {
+      const key = r.toLowerCase().trim();
       const match = Object.entries(p.coverageMap).find(([k]) =>
-        key.includes(k) || k.includes(key.split(" ")[0])
+        key === k.toLowerCase().trim() || 
+        k.toLowerCase().includes(key) || 
+        key.includes(k.toLowerCase())
       );
       return match && match[1].status === "covered";
     });
-    const gapReqs = requirements.filter(r => {
-      const key = r.toLowerCase();
+    const gapReqs = requirements.filter((r: string) => {
+      const key = r.toLowerCase().trim();
       const match = Object.entries(p.coverageMap).find(([k]) =>
-        key.includes(k) || k.includes(key.split(" ")[0])
+        key === k.toLowerCase().trim() || 
+        k.toLowerCase().includes(key) || 
+        key.includes(k.toLowerCase())
       );
-      return !match || match[1].status === "not_covered";
+      return !match || match[1].status !== "covered";
     });
 
     return {
@@ -59,7 +65,7 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
       })),
       gapCount: gapReqs.length,
       highlights: p.highlights,
-      warnings: [...p.warnings, ...gapReqs.map(r => `Missing: ${r}`)],
+      warnings: [...p.warnings, ...gapReqs.map((r: string) => `Missing: ${r}`)],
     };
   });
 
@@ -91,10 +97,12 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
   }
 
   // Build coverage items from policy coverage map
-  const coverageItems = requirements.map(req => {
-    const key = req.toLowerCase();
+  const coverageItems = requirements.map((req: string) => {
+    const key = req.toLowerCase().trim();
     const match = Object.entries(policy.coverageMap).find(([k]) =>
-      key.includes(k) || k.includes(key.split(" ")[0])
+      key === k.toLowerCase().trim() || 
+      k.toLowerCase().includes(key) || 
+      key.includes(k.toLowerCase())
     );
     if (match) {
       return {
@@ -114,9 +122,9 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
     };
   });
 
-  const covered = coverageItems.filter(c => c.status === "covered").map(c => c.requirement);
-  const partial = coverageItems.filter(c => c.status === "partial").map(c => c.requirement);
-  const gaps = coverageItems.filter(c => c.status === "not_covered").map(c => c.requirement);
+  const covered = coverageItems.filter((c: any) => c.status === "covered").map((c: any) => c.requirement);
+  const partial = coverageItems.filter((c: any) => c.status === "partial").map((c: any) => c.requirement);
+  const gaps = coverageItems.filter((c: any) => c.status === "not_covered").map((c: any) => c.requirement);
 
   // Use AI for summary and key terms
   let summary = `${policy.insurerName} ${policy.planName} provides ${covered.length} of your ${requirements.length} required coverages.`;
@@ -254,36 +262,63 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
 });
 
 router.post("/insurance/applications/submit", async (req, res): Promise<void> => {
-  const parsed = SubmitApplicationBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "validation_error", message: parsed.error.message });
-    return;
+  try {
+    const { policyId, userProfileId, fields } = SubmitApplicationBody.parse(req.body);
+
+    // Get policy details from mock data (in real life, from DB)
+    const insuranceType = policyId.startsWith("home") ? "home" : "auto";
+    const policies = getPoliciesForType(insuranceType);
+    const policy = policies.find((p: any) => p.id === policyId);
+
+    if (!policy) {
+      res.status(404).json({ error: "not_found", message: "Policy not found" });
+      return;
+    }
+
+    // Convert fields array to a JSON object
+    const formData = fields.reduce((acc: any, f: any) => {
+      acc[f.fieldId] = f.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    // Insert into DB
+    const confirmationId = randomUUID();
+    await db.insert(applicationsTable).values({
+      id: confirmationId,
+      userProfileId: Number(userProfileId),
+      policyId,
+      insurerName: policy.insurerName,
+      planName: policy.planName,
+      monthlyPremium: Math.round(policy.monthlyPremium * 100), // store as cents
+      status: "submitted",
+      formData,
+    });
+
+    const mockPolicyNumber = `POL-${Math.floor(Math.random() * 1000000).toString().padStart(6, "0")}`;
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    nextMonth.setDate(1);
+
+    const summary = policy.coverageMap ? Object.keys(policy.coverageMap)
+      .filter(k => policy.coverageMap[k].status === "covered" || policy.coverageMap[k].status === "partial")
+      .slice(0, 3)
+      .map(k => k.charAt(0).toUpperCase() + k.slice(1)) : [];
+
+    res.json({
+      confirmationId,
+      policyNumber: mockPolicyNumber,
+      insurerName: policy.insurerName,
+      planName: policy.planName,
+      startDate: nextMonth.toISOString().split("T")[0],
+      monthlyPremium: policy.monthlyPremium,
+      coverageSummary: summary,
+      status: "submitted",
+      message: "Your application has been received and is pending final review.",
+    });
+  } catch (err: any) {
+    console.error("Submit application error:", err);
+    res.status(500).json({ error: "application_error", message: err.message || "Failed to submit application" });
   }
-
-  const { policyId } = parsed.data;
-  const allPolicies = [...getPoliciesForType("auto"), ...getPoliciesForType("home")];
-  const policy = allPolicies.find(p => p.id === policyId);
-
-  if (!policy) {
-    res.status(404).json({ error: "not_found", message: "Policy not found" });
-    return;
-  }
-
-  const confirmationId = `INS-${Date.now().toString(36).toUpperCase()}`;
-  const policyNumber = `POL-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-  const startDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-  res.json({
-    confirmationId,
-    policyNumber,
-    insurerName: policy.insurerName,
-    planName: policy.planName,
-    startDate,
-    monthlyPremium: policy.monthlyPremium,
-    coverageSummary: policy.highlights,
-    status: "approved",
-    message: `Congratulations! Your ${policy.planName} policy has been approved. Your coverage begins on ${startDate}.`,
-  });
 });
 
 // ─── Premium Optimizer ───────────────────────────────────────────────────────
@@ -327,7 +362,8 @@ Respond ONLY with valid JSON in this exact format:
       "title": "Short action-oriented title",
       "description": "2–3 sentence hyper-specific explanation with numbers and real context",
       "category": "location|credit|deductible|bundling|vehicle|safety|lifestyle",
-      "estimatedSavings": "$X–$Y/month",
+      "minSavings": 0,
+      "maxSavings": 0,
       "impact": "high|medium|low",
       "actionLabel": "Short CTA button text",
       "profileField": "location|budgetMonthly|null"
@@ -347,12 +383,35 @@ Respond ONLY with valid JSON in this exact format:
     });
 
     const raw = response.choices[0]?.message?.content ?? "";
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      res.status(500).json({ error: "parse_error", message: "Could not parse AI response" });
-      return;
+    let parsed: any;
+    try {
+      // First try to extract just JSON
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        // Fallback: try parsing the whole thing
+        parsed = JSON.parse(raw);
+      }
+    } catch (e) {
+      // Fallback 2: The LLM heavily hallucinated or formatting is broken
+      console.error("Failed to parse Optimizer JSON, falling back.", e);
+      parsed = {
+        tips: [
+          {
+            id: "fallback_1",
+            title: "Review Your Deductibles",
+            description: "Raising your deductive can lower your monthly premium significantly. Check if you have enough in savings to cover a higher deductible.",
+            category: "deductible",
+            estimatedSavings: "$10–$25/month",
+            impact: "medium",
+            actionLabel: "Review Coverages",
+            profileField: "null"
+          }
+        ],
+        personalizedQuote: `Here are some generic tips for your ${insuranceType} insurance in ${location}. Let's chat more to get specific!`
+      };
     }
-    const parsed = JSON.parse(jsonMatch[0]);
     res.json(parsed);
   } catch (err) {
     console.error("Optimize profile error:", err);

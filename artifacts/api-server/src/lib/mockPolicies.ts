@@ -175,6 +175,54 @@ export const HOME_POLICIES: MockPolicy[] = [
       "jewelry": { status: "partial", details: "Up to $2,500 standard, riders available" },
     },
   },
+  {
+    id: "home-safeco-basic",
+    insurerName: "SafeCo Properties",
+    insurerLogo: "SP",
+    planName: "Essential Home",
+    monthlyPremium: 98,
+    annualPremium: 1176,
+    deductible: 2500,
+    baseMatchScore: 78,
+    priceScore: 95,
+    coverageScore: 68,
+    ratingScore: 75,
+    overallRating: 3.9,
+    reviewCount: 8942,
+    highlights: ["Lowest premium option", "Quick online claims", "Multi-policy discount"],
+    warnings: ["High deductible", "Limited water damage coverage"],
+    coverageMap: {
+      "flood cover": { status: "not_covered", details: "Not covered under basic plan" },
+      "water backup": { status: "partial", details: "Capped at $5k for sewer backup" },
+      "replacement cost": { status: "not_covered", details: "Actual cash value only (depreciated)" },
+      "personal liability": { status: "covered", details: "$100k liability limit" },
+      "jewelry": { status: "not_covered", details: "Requires separate valuable personal property rider" },
+    },
+  },
+  {
+    id: "home-elite-shield",
+    insurerName: "Elite Shield",
+    insurerLogo: "ES",
+    planName: "Comprehensive Villa",
+    monthlyPremium: 215,
+    annualPremium: 2580,
+    deductible: 500,
+    baseMatchScore: 85,
+    priceScore: 45,
+    coverageScore: 98,
+    ratingScore: 96,
+    overallRating: 4.8,
+    reviewCount: 5431,
+    highlights: ["All-perils coverage", "Guaranteed replacement cost", "High limits on valuables", "Service line coverage included"],
+    warnings: ["Premium pricing"],
+    coverageMap: {
+      "flood cover": { status: "covered", details: "Full flood protection included via endorsement" },
+      "water backup": { status: "covered", details: "Unlimited water backup coverage" },
+      "replacement cost": { status: "covered", details: "Guaranteed replacement cost with no deduction for depreciation" },
+      "personal liability": { status: "covered", details: "$1 Million umbrella liability included" },
+      "jewelry": { status: "covered", details: "Up to $15,000 blanket coverage for valuables" },
+    },
+  }
 ];
 
 export function getPoliciesForType(insuranceType: string): MockPolicy[] {
@@ -207,9 +255,11 @@ export function scoreAndRankPolicies(
       let reqScore = 100;
       if (reqCount > 0) {
         const covered = requirements.filter(r => {
-          const key = r.toLowerCase();
+          const key = r.toLowerCase().trim();
           const match = Object.entries(p.coverageMap).find(([k]) =>
-            key.includes(k) || k.includes(key.split(" ")[0])
+            key === k.toLowerCase().trim() ||
+            k.toLowerCase().includes(key) ||
+            key.includes(k.toLowerCase())
           );
           return match && match[1].status === "covered";
         }).length;
