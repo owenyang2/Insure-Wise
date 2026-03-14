@@ -1,0 +1,63 @@
+﻿
+鈹€鈹€ Scoring engine 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+  鉁? scoreAllPlans 鈥?attaches final_score to each plan
+  鉁? scoreAllPlans 鈥?higher coverage score wins with coverage-heavy weights
+     plan-c should rank #1 with coverage-heavy weights
+  鉁? scoreAllPlans 鈥?lower price wins with price-heavy weights
+  鉁? rankPlans 鈥?excludes rejected plan IDs
+  鉁? rankPlans 鈥?filters by max deductible
+  鉁? rankPlans 鈥?assigns sequential rank numbers
+  鉁? rerankCached 鈥?re-sorts without changing coverage scores
+  鉁? rerankCached 鈥?coverage scores unchanged after reweight
+
+鈹€鈹€ Input validation 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+node : node:internal/modules/cjs/loader:1401
+所在位置 行:1 字符: 1
++ node run-tests.js 2>&1 | Out-File -Encoding utf8 
+debug.log
++ ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (node: 
+   internal/modules/cjs/loader:1401:String) [], R  
+  emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  const err = new Error(message);
+              ^
+
+Error: Cannot find module '../services/nlp'
+Require stack:
+- C:\Users\閲戝煿鏉癨OneDrive - University of 
+Toronto\妗岄潰\search engine\validation.js
+- C:\Users\閲戝煿鏉癨OneDrive - University of 
+Toronto\妗岄潰\search engine\run-tests.js
+    at Function._resolveFilename 
+(node:internal/modules/cjs/loader:1401:15)
+    at defaultResolveImpl 
+(node:internal/modules/cjs/loader:1057:19)
+    at resolveForCJSWithHooks 
+(node:internal/modules/cjs/loader:1062:22)
+    at Function._load 
+(node:internal/modules/cjs/loader:1211:37)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:322:14)
+    at wrapModuleLoad 
+(node:internal/modules/cjs/loader:235:24)
+    at Module.require 
+(node:internal/modules/cjs/loader:1487:12)
+    at require 
+(node:internal/modules/helpers:135:16)
+    at Object.<anonymous> (C:\Users\閲戝煿鏉癨OneDrive 
+- University of Toronto\妗岄潰\search 
+engine\validation.js:1:27)
+    at Module._compile 
+(node:internal/modules/cjs/loader:1730:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\閲戝煿鏉癨\OneDrive - University of 
+Toronto\\妗岄潰\\search engine\\validation.js',
+    'C:\\Users\\閲戝煿鏉癨\OneDrive - University of 
+Toronto\\妗岄潰\\search engine\\run-tests.js'
+  ]
+}
+
+Node.js v22.17.0
