@@ -88,8 +88,11 @@ async function fetchFromCoterie(userProfile) {
   const estimates = resp.data.estimates || resp.data.rates || [];
   
   if (estimates.length === 0) {
-     // Return at least a dummy coterie mock if the sandbox API doesn't generate rate arrays for the zip code
-     return getMockQuotes(userProfile).map(q => ({...q, carrier_id: 'coterie_commercial', carrier_name: 'Coterie Insurance'}));
+     // For demo purposes, return 5 diverse carriers so the AI compares different companies
+     const mocks = getMockQuotes(userProfile);
+     mocks[0].carrier_name = 'Coterie Insurance';
+     mocks[0].carrier_id = 'coterie_commercial';
+     return mocks;
   }
 
   return estimates.map(e => ({
