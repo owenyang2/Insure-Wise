@@ -228,3 +228,106 @@ Nightly cron (2am)
 | Aggregator unreachable | Mock quotes (5 carriers) |
 | WDU not configured | pdf-parse rule-based extraction |
 | Plan missing from policy DB | Returns aggregator data only, flags `has_policy_detail: false` |
+
+---
+
+## 🔌 Frontend-to-AI Engine Integration Guide
+
+### 1. Initial Search (The Chatbot Intake)
+**Endpoint:** `POST /api/search`
+**When to use:** When the user finishes their initial chatbot questionnaire and you want to generate the first list of recommended insurance policies.
+
+**What you send (Request Body):**
+*Note: We built an adapter system. You MUST include `"insurance_category"` so the backend knows how to translate your specific fields into our universal AI schema.*
+```json
+{
+  "user_profile": {
+    "insurance_category": "commercial", // "commercial", "auto", or "home"
+    "business_type": "restaurant",
+    "location": "Chicago, IL",
+    "coverage_needs": ["General Liability", "Liquor Liability"]
+  }
+}
+```
+
+**What you receive (Response):**
+The backend translates the AI's complex math to perfectly match your **`MockPolicy` TypeScript interface**. You can map this array directly into your UI components!
+```json
+{
+  "session_id": "c1a2b3c4-d5e6-7f8g",
+  "plan_count": 5,
+  "ranked": [
+    {
+      "id": "coterie-sample-01",
+      "insurerName": "Coterie Insurance",
+      "planName": "Commercial BOP",
+      "monthlyPremium": 375,
+      "baseMatchScore": 85,
+      "ratingScore": 80,
+      "overallRating": 4.6,
+      "highlights": ["General Liability Included"],
+      "warnings": ["Liability limit may be insufficient for a restaurant in Chicago"],
+      "coverageMap": {
+        "General Liability": { "status": "covered", "details": "Included in standard BOP" },
+        "Liquor Liability": { "status": "covered", "details": "Included via endorsement" }
+      }
+    }
+  ]
+}
+```
+*(Store the `session_id` in your React state—you will need it for the next two endpoints!)*
+
+---
+
+### 2. Chatbot Conversational Feedback Loop
+**Endpoint:** `POST /api/feedback`
+**When to use:** When the user is looking at the UI list of plans and types something into the chatbot like *"I actually care a lot more about price"*.
+
+**What you send (Request Body):**
+Just send the raw English text and the `session_id`.
+```json
+{
+  "session_id": "c1a2b3c4-d5e6-7f8g",
+  "feedback_text": "I actually care way more about the price than the coverage."
+}
+```
+
+**What you receive (Response):**
+The backend uses an IBM Intent Classifier to read their sentence, rewrite the Math Weights internally, and instantly resort the array. It returns the exact same `ranked` array format as above, just perfectly re-ordered to match their new conversational request.
+
+---
+
+### 3. Deep Dive / Policy Explanation Modal
+**Endpoint:** `POST /api/explain`
+**When to use:** When the user clicks a specific policy card on your UI to see the deep-dive details of *exactly* what is covered vs. excluded.
+
+**What you send (Request Body):**
+```json
+{
+  "session_id": "c1a2b3c4-d5e6-7f8g",
+  "plan_id": "coterie-sample-01"
+}
+```
+
+**What you receive (Response):**
+The engine pulls the 50-page PDF exclusions from the database and uses IBM Watsonx to generate a plain-English explanation for the user. Display `coverage_explanation` in your modal!
+```json
+{
+  "plan_id": "coterie-sample-01",
+  "carrier_name": "Coterie Insurance",
+  "monthly_price": 375,
+  "apply_url": "https://coterieinsurance.com/apply",
+  "coverage_explanation": [
+     {
+       "need": "General Liability",
+       "status": "covered",
+       "explanation": "Fully covered up to $1,000,000. This handles third-party bodily injury if a customer slips in your restaurant."
+     },
+     {
+       "need": "Liquor Liability",
+       "status": "partial",
+       "explanation": "Covered, but limited to $500,000. Because your alcohol sales are 'High', this limit might expose you to risk."
+     }
+  ]
+}
+```
