@@ -1,0 +1,22 @@
+packages:
+  "framer-motion": "For smooth page transitions, chat bubble animations, and interactive component feedback"
+  "zustand": "For managing global session state (user profile ID, chat history, confirmation data)"
+  "clsx": "For conditional class merging in UI components"
+  "tailwind-merge": "For conditional class merging in UI components"
+  "@hookform/resolvers": "For form validation if needed"
+
+images:
+  - path: "artifacts/insurewise/public/images/hero-bg.png"
+    description: "Abstract gradient mesh background in professional calm blue and white tones with soft light leaks, enterprise SaaS style"
+    aspect_ratio: "16:9"
+  - path: "artifacts/insurewise/public/images/logo.png"
+    description: "Minimal geometric shield logo mark in deep blue on transparent background, modern tech company style"
+    aspect_ratio: "1:1"
+  - path: "artifacts/insurewise/public/images/avatar-ai.png"
+    description: "Friendly futuristic AI assistant robot avatar icon, minimal flat design, blue and white"
+    aspect_ratio: "1:1"
+
+notes:
+  - Expecting TanStack query hooks to be available at @workspace/api-client-react
+  - wouter is used for routing
+  - Using zustand for simple global state management (profile ID, chat progress)

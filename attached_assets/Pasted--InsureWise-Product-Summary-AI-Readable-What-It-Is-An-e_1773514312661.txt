@@ -1,0 +1,159 @@
+# InsureWise — Product Summary (AI-Readable)
+
+## What It Is
+An end-to-end agentic AI platform that helps users find, compare, understand, and purchase insurance — with zero manual re-entry and full policy transparency.
+
+---
+
+## Core Problem
+Existing insurance comparison platforms (Insurify, The Zebra, Policygenius, NerdWallet) require users to:
+- Re-enter personal data on every platform
+- Compare policies by price only, ignoring user priorities
+- Read 60-page policy PDFs themselves to understand coverage
+- Leave the platform and re-fill forms on the insurer's own website
+
+---
+
+## How It Works — 7 Phases
+
+**Phase 1 — Requirement Gathering**
+Agent has a natural language conversation with the user. Extracts: age, location, vehicle/property details, budget ceiling, must-have coverage types. User also sets priority weights (e.g. price 50%, coverage 30%, insurer rating 20%). Profile is stored — never asked again.
+
+**Phase 2 — Agentic Parallel Search**
+An orchestrator agent spawns 4 parallel sub-agents:
+- Price agent: fetches live quotes from multiple insurers via API or web automation
+- Coverage agent: parses policy documents and maps terms to user requirements
+- Ratings agent: pulls insurer claim satisfaction scores and reviews
+- Exclusions agent: identifies gaps between policy coverage and user needs
+All 4 run simultaneously. Full results return in under 20 seconds.
+
+**Phase 3 — Priority-Weighted Comparison**
+Results are scored and ranked using the user's priority weights. User sees a card-based comparison view with match score, price, coverage summary, and gap flags. User can drag-adjust priority weights and results re-rank in real time without a new search.
+
+**Phase 4 — Policy Selection**
+User taps a policy card to enter detail view. Agent fetches the full policy document (PDF or HTML) from the insurer and runs a deep LLM analysis.
+
+**Phase 5 — AI Policy Explanation + Gap Check (Loop)**
+Agent reads the full policy document and produces a plain-language breakdown mapped directly to the user's stated requirements:
+- ✓ Covered
+- ⚠ Partially covered
+- ✕ Not covered
+
+If gaps are found, user is shown exactly what's missing relative to their needs. User can:
+- Accept the policy anyway
+- Go back to comparison and add a new priority
+- Loop repeats with new priority factored in until user is satisfied
+
+**Phase 6 — Auto-Fill Application Form**
+Agent has a registry of each insurer's application form schema (field names, types, validation rules). It maps the stored user profile to all required fields automatically. User sees a pre-filled review card — can tap to edit any single field. No full form to fill out manually.
+
+**Phase 7 — Confirm → Submit → Done**
+User taps one "Confirm & submit" button. Agent submits the application via the insurer's API or browser automation. User receives policy number, start date, coverage summary, and full policy document. Profile is updated in the database for future use (e.g. auto-claim flow).
+
+---
+
+## Agentic Architecture
+
+```
+User Input
+    ↓
+Orchestrator Agent
+(parses priorities, routes tasks, aggregates results)
+    ↓ [spawns in parallel]
+┌─────────────┬──────────────┬───────────────┬──────────────────┐
+│ Price Agent │Coverage Agent│ Ratings Agent │ Exclusions Agent │
+│ Live quotes │ Policy parse │Reviews, scores│   Gap detection  │
+└─────────────┴──────────────┴───────────────┴──────────────────┘
+    ↓ [results merged]
+Results Aggregator
+(weighted scoring → ranked comparison cards)
+    ↓
+Priority Weighting Engine
+(user-adjustable weights → live re-ranking)
+    ↓
+Policy Explanation Engine
+(LLM reads full policy → maps to user requirements → gap report)
+    ↓
+Form Auto-Fill Engine
+(profile → insurer form schema → pre-filled application)
+    ↓
+Submission + Confirmation
+```
+
+---
+
+## Key Differentiators vs Competitors
+
+| Feature | InsureWise | Insurify / Zebra | Policygenius | Lemonade |
+|---|---|---|---|---|
+| Zero re-entry of user data | ✓ | ✗ | ✗ | ✗ |
+| Priority-weighted ranking | ✓ | ✗ | ✗ | ✗ |
+| Plain-language policy explanation | ✓ | ✗ | ✗ | ✗ |
+| Coverage gap check vs user needs | ✓ | ✗ | ✗ | ✗ |
+| In-app form auto-fill | ✓ | ✗ | ✗ | N/A |
+| End-to-end transaction (no redirect) | ✓ | ✗ | ✗ | ✓ (own insurer only) |
+| Works across multiple insurers | ✓ | ✓ | ✓ | ✗ |
+
+---
+
+## Tech Stack (MVP)
+
+- **LLM**: Claude or GPT-4o for conversation, policy reading, and form field mapping
+- **Agent framework**: LangGraph (multi-agent orchestration with tool calling)
+- **Web automation**: Playwright (for insurers without public APIs)
+- **Backend**: FastAPI + PostgreSQL (user profiles) + Redis (session/queue)
+- **Frontend**: React + Tailwind
+- **Policy parsing**: RAG pipeline over insurer PDF/HTML documents
+- **Form registry**: JSON schema per insurer, versioned and monitored for drift
+
+---
+
+## MVP Build Scope (12 weeks)
+
+**Sprint 1 (Weeks 1–4):** User intake, priority UI, 3–5 insurer integrations, price + coverage agents, basic comparison cards
+
+**Sprint 2 (Weeks 5–8):** LLM policy reader (RAG), gap detection, plain-language report UI, live priority re-weighting, ratings + exclusions agents, feedback loop
+
+**Sprint 3 (Weeks 9–12):** Form schema registry, auto-fill engine, review UI, submission automation, end-to-end testing
+
+---
+
+## Key Risks
+
+- **Insurer API access**: Most insurers lack public APIs → use Playwright automation for MVP, pursue partnerships in parallel
+- **Policy parsing accuracy**: LLM may misread complex legal clauses → cite source clauses, flag low-confidence extractions, add legal disclaimer
+- **Regulatory compliance**: Insurance distribution may require broker license → launch as info/comparison tool first, add transaction layer after legal review
+- **Form schema drift**: Insurers change forms silently → weekly schema monitoring job, fallback to guided manual entry
+
+---
+
+## Success Metrics (90 days post-launch)
+
+- Completion rate (Phase 1 → Phase 7): target >40% (industry baseline <10%)
+- Average policy explanation loops per session: target >1.5 (indicates engagement)
+- Time from first input to submission: target <7 minutes
+- NPS: target >60 (insurance industry average is 20–35)
+
+---
+
+## Data Flow Summary
+
+```
+user_profile {
+  personal: { age, location, name, contact }
+  asset: { vehicle/property details }
+  financial: { budget, payment preference }
+  priorities: { price_weight, coverage_weight, rating_weight }
+  requirements: [ "rental car", "zero deductible", "flood cover", ... ]
+}
+  ↓ fed into → Orchestrator
+  ↓ results → comparison_results[]
+  ↓ selected → policy_document (full text)
+  ↓ analyzed → coverage_report { covered[], partial[], gaps[] }
+  ↓ approved → application_form (auto-filled)
+  ↓ confirmed → submission → policy_confirmation
+```
+
+---
+
+*InsureWise MVP v1.0 — Summary for AI context loading*

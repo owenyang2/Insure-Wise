@@ -1,0 +1,712 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: InsureWise API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: users
+    description: User profile management
+  - name: insurance
+    description: Insurance search, comparison, and application
+  - name: ai
+    description: AI-powered policy explanation and chat
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /users/profile:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Get user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertUserProfile
+      tags: [users]
+      summary: Create or update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertUserProfileRequest"
+      responses:
+        "200":
+          description: Profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /insurance/search:
+    post:
+      operationId: searchPolicies
+      tags: [insurance]
+      summary: Search and compare insurance policies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchPoliciesRequest"
+      responses:
+        "200":
+          description: List of ranked policy results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchPoliciesResponse"
+
+  /insurance/policies/{policyId}/explain:
+    post:
+      operationId: explainPolicy
+      tags: [insurance]
+      summary: AI explanation of a policy against user requirements
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExplainPolicyRequest"
+      responses:
+        "200":
+          description: AI policy explanation and gap analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExplainPolicyResponse"
+
+  /insurance/policies/{policyId}/application:
+    post:
+      operationId: getApplicationForm
+      tags: [insurance]
+      summary: Get pre-filled application form for a policy
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetApplicationFormRequest"
+      responses:
+        "200":
+          description: Pre-filled application form
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationForm"
+
+  /insurance/applications/submit:
+    post:
+      operationId: submitApplication
+      tags: [insurance]
+      summary: Submit an insurance application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitApplicationRequest"
+      responses:
+        "200":
+          description: Application submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationConfirmation"
+
+  /ai/chat:
+    post:
+      operationId: aiChat
+      tags: [ai]
+      summary: AI conversation for requirement gathering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatRequest"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    PriorityWeights:
+      type: object
+      properties:
+        price:
+          type: number
+          minimum: 0
+          maximum: 100
+        coverage:
+          type: number
+          minimum: 0
+          maximum: 100
+        rating:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+        - price
+        - coverage
+        - rating
+
+    VehicleDetails:
+      type: object
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        vin:
+          type: string
+      required:
+        - make
+        - model
+        - year
+
+    PropertyDetails:
+      type: object
+      properties:
+        address:
+          type: string
+        type:
+          type: string
+          enum: [house, condo, apartment, townhouse]
+        yearBuilt:
+          type: integer
+        squareFeet:
+          type: integer
+      required:
+        - address
+        - type
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        age:
+          type: integer
+        location:
+          type: string
+        budgetMonthly:
+          type: number
+        insuranceType:
+          type: string
+          enum: [auto, home, life, health, renters]
+        priorities:
+          $ref: "#/components/schemas/PriorityWeights"
+        requirements:
+          type: array
+          items:
+            type: string
+        vehicleDetails:
+          $ref: "#/components/schemas/VehicleDetails"
+        propertyDetails:
+          $ref: "#/components/schemas/PropertyDetails"
+        onboardingComplete:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - age
+        - location
+        - budgetMonthly
+        - insuranceType
+        - priorities
+        - requirements
+        - onboardingComplete
+        - createdAt
+        - updatedAt
+
+    UpsertUserProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        location:
+          type: string
+        budgetMonthly:
+          type: number
+        insuranceType:
+          type: string
+          enum: [auto, home, life, health, renters]
+        priorities:
+          $ref: "#/components/schemas/PriorityWeights"
+        requirements:
+          type: array
+          items:
+            type: string
+        vehicleDetails:
+          $ref: "#/components/schemas/VehicleDetails"
+        propertyDetails:
+          $ref: "#/components/schemas/PropertyDetails"
+        onboardingComplete:
+          type: boolean
+      required:
+        - name
+        - age
+        - location
+        - budgetMonthly
+        - insuranceType
+        - priorities
+        - requirements
+
+    CoverageItem:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [covered, partial, not_covered]
+        details:
+          type: string
+        limit:
+          type: string
+      required:
+        - type
+        - name
+        - status
+        - details
+
+    PolicyCard:
+      type: object
+      properties:
+        id:
+          type: string
+        insurerName:
+          type: string
+        insurerLogo:
+          type: string
+        planName:
+          type: string
+        monthlyPremium:
+          type: number
+        annualPremium:
+          type: number
+        deductible:
+          type: number
+        matchScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        priceScore:
+          type: number
+        coverageScore:
+          type: number
+        ratingScore:
+          type: number
+        overallRating:
+          type: number
+          minimum: 0
+          maximum: 5
+        reviewCount:
+          type: integer
+        coverageSummary:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoverageItem"
+        gapCount:
+          type: integer
+        highlights:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - insurerName
+        - planName
+        - monthlyPremium
+        - annualPremium
+        - deductible
+        - matchScore
+        - priceScore
+        - coverageScore
+        - ratingScore
+        - overallRating
+        - reviewCount
+        - coverageSummary
+        - gapCount
+        - highlights
+        - warnings
+
+    SearchPoliciesRequest:
+      type: object
+      properties:
+        userProfileId:
+          type: string
+        insuranceType:
+          type: string
+          enum: [auto, home, life, health, renters]
+        priorities:
+          $ref: "#/components/schemas/PriorityWeights"
+        requirements:
+          type: array
+          items:
+            type: string
+        budgetMonthly:
+          type: number
+        location:
+          type: string
+      required:
+        - insuranceType
+        - priorities
+        - requirements
+        - budgetMonthly
+        - location
+
+    SearchPoliciesResponse:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PolicyCard"
+        totalFound:
+          type: integer
+        searchDuration:
+          type: number
+      required:
+        - policies
+        - totalFound
+        - searchDuration
+
+    CoverageExplanation:
+      type: object
+      properties:
+        requirement:
+          type: string
+        status:
+          type: string
+          enum: [covered, partial, not_covered]
+        explanation:
+          type: string
+        policyClause:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+      required:
+        - requirement
+        - status
+        - explanation
+        - confidence
+
+    ExplainPolicyRequest:
+      type: object
+      properties:
+        requirements:
+          type: array
+          items:
+            type: string
+        userContext:
+          type: string
+      required:
+        - requirements
+
+    ExplainPolicyResponse:
+      type: object
+      properties:
+        policyId:
+          type: string
+        summary:
+          type: string
+        coverageItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/CoverageExplanation"
+        covered:
+          type: array
+          items:
+            type: string
+        partial:
+          type: array
+          items:
+            type: string
+        gaps:
+          type: array
+          items:
+            type: string
+        recommendation:
+          type: string
+        keyTerms:
+          type: array
+          items:
+            type: object
+            properties:
+              term:
+                type: string
+              definition:
+                type: string
+            required:
+              - term
+              - definition
+      required:
+        - policyId
+        - summary
+        - coverageItems
+        - covered
+        - partial
+        - gaps
+        - recommendation
+        - keyTerms
+
+    GetApplicationFormRequest:
+      type: object
+      properties:
+        userProfileId:
+          type: string
+      required:
+        - userProfileId
+
+    ApplicationField:
+      type: object
+      properties:
+        fieldId:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        fieldType:
+          type: string
+          enum: [text, number, date, select, boolean]
+        options:
+          type: array
+          items:
+            type: string
+        required:
+          type: boolean
+        editable:
+          type: boolean
+      required:
+        - fieldId
+        - label
+        - value
+        - fieldType
+        - required
+        - editable
+
+    ApplicationForm:
+      type: object
+      properties:
+        policyId:
+          type: string
+        insurerName:
+          type: string
+        planName:
+          type: string
+        monthlyPremium:
+          type: number
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              fields:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApplicationField"
+            required:
+              - title
+              - fields
+        autoFilledCount:
+          type: integer
+        totalFieldCount:
+          type: integer
+      required:
+        - policyId
+        - insurerName
+        - planName
+        - monthlyPremium
+        - sections
+        - autoFilledCount
+        - totalFieldCount
+
+    SubmitApplicationRequest:
+      type: object
+      properties:
+        policyId:
+          type: string
+        userProfileId:
+          type: string
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldId:
+                type: string
+              value:
+                type: string
+            required:
+              - fieldId
+              - value
+      required:
+        - policyId
+        - userProfileId
+        - fields
+
+    ApplicationConfirmation:
+      type: object
+      properties:
+        confirmationId:
+          type: string
+        policyNumber:
+          type: string
+        insurerName:
+          type: string
+        planName:
+          type: string
+        startDate:
+          type: string
+          format: date
+        monthlyPremium:
+          type: number
+        coverageSummary:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [submitted, pending_review, approved]
+        message:
+          type: string
+      required:
+        - confirmationId
+        - policyNumber
+        - insurerName
+        - planName
+        - startDate
+        - monthlyPremium
+        - coverageSummary
+        - status
+        - message
+
+    ChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+      required:
+        - role
+        - content
+
+    AiChatRequest:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        context:
+          type: string
+        extractProfile:
+          type: boolean
+      required:
+        - messages
+
+    AiChatResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        extractedProfile:
+          $ref: "#/components/schemas/UpsertUserProfileRequest"
+        isComplete:
+          type: boolean
+        nextQuestion:
+          type: string
+      required:
+        - message
+        - isComplete
