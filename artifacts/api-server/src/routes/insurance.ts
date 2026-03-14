@@ -401,9 +401,10 @@ Respond ONLY with valid JSON in this exact format:
           {
             id: "fallback_1",
             title: "Review Your Deductibles",
-            description: "Raising your deductive can lower your monthly premium significantly. Check if you have enough in savings to cover a higher deductible.",
+            description: "Raising your deductible can lower your monthly premium significantly. Check if you have enough in savings to cover a higher deductible.",
             category: "deductible",
-            estimatedSavings: "$10–$25/month",
+            minSavings: 10,
+            maxSavings: 25,
             impact: "medium",
             actionLabel: "Review Coverages",
             profileField: "null"

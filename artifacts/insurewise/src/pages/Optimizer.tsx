@@ -33,19 +33,19 @@ interface OptimizationResult {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CATEGORY_META: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string }> = {
-  location:   { icon: <MapPin size={18} />,    color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-200" },
-  credit:     { icon: <CreditCard size={18} />, color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" },
-  deductible: { icon: <Shield size={18} />,     color: "text-emerald-600",bg: "bg-emerald-50",border: "border-emerald-200" },
-  bundling:   { icon: <Package size={18} />,    color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
-  vehicle:    { icon: <Car size={18} />,         color: "text-slate-600",  bg: "bg-slate-50",  border: "border-slate-200" },
-  safety:     { icon: <Zap size={18} />,         color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
-  lifestyle:  { icon: <Leaf size={18} />,        color: "text-green-600",  bg: "bg-green-50",  border: "border-green-200" },
+  location: { icon: <MapPin size={18} />, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+  credit: { icon: <CreditCard size={18} />, color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" },
+  deductible: { icon: <Shield size={18} />, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+  bundling: { icon: <Package size={18} />, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+  vehicle: { icon: <Car size={18} />, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200" },
+  safety: { icon: <Zap size={18} />, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  lifestyle: { icon: <Leaf size={18} />, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
 };
 
 const IMPACT_COLOR: Record<string, string> = {
-  high:   "bg-red-100 text-red-700 border-red-200",
+  high: "bg-red-100 text-red-700 border-red-200",
   medium: "bg-amber-100 text-amber-700 border-amber-200",
-  low:    "bg-green-100 text-green-700 border-green-200",
+  low: "bg-green-100 text-green-700 border-green-200",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -87,7 +87,11 @@ export default function Optimizer() {
   };
 
   const totalEstimatedSavings = result?.tips
-    .map(t => Math.round((t.minSavings + t.maxSavings) / 2))
+    .map(t => {
+      const min = Number(t.minSavings) || 0;
+      const max = Number(t.maxSavings) || 0;
+      return Math.round((min + max) / 2);
+    })
     .reduce((a, b) => a + b, 0) ?? 0;
 
   // ── No profile ─────────────────────────────────────────────────────────────
@@ -310,7 +314,7 @@ export default function Optimizer() {
 
                         {/* Savings badge */}
                         <div className="shrink-0 text-right">
-                          <div className="text-xl font-bold text-emerald-600 whitespace-nowrap">${tip.minSavings}–${tip.maxSavings}/mo</div>
+                          <div className="text-xl font-bold text-emerald-600 whitespace-nowrap">${Number(tip.minSavings) || 0}–${Number(tip.maxSavings) || 0}/mo</div>
                           <div className="text-xs text-muted-foreground">est. savings</div>
                         </div>
                       </div>
