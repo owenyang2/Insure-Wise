@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
 import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
 import { schemas } from "@workspace/api-zod";
-const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody } = schemas;
+const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody, AiParseAnswerBody } = schemas;
 import { db, userProfilesTable, applicationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getPoliciesForType, scoreAndRankPolicies } from "../lib/mockPolicies.js";
@@ -417,6 +417,63 @@ Respond ONLY with valid JSON in this exact format:
   } catch (err) {
     console.error("Optimize profile error:", err);
     res.status(500).json({ error: "ai_error", message: "Failed to generate optimization tips" });
+  }
+});
+
+router.post("/ai/parse-answer", async (req, res): Promise<void> => {
+  const parsed = AiParseAnswerBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return;
+  }
+
+  const { questionId, questionText, answer } = parsed.data;
+
+  const prompt = `You are an AI assistant parsing answers for an insurance onboarding questionnaire.
+The user was asked: "${questionText}"
+The user's free-form answer was: "${answer}"
+
+Your job is to extract the core intended answer to the question (parsedValue) and any additional details (extractedEntities).
+- For 'parsedValue', format it cleanly (e.g., if asked for insurance type and they said "I need coverage for my car", parsedValue is "Auto").
+- IMPORTANT: If the user says "I don't know", "not sure", or provides an ambiguous/unhelpful answer, you MUST set 'parsedValue' to null. Do not guess or assume.
+- For 'extractedEntities', include any other useful details found in their answer. You MUST use EXACTLY these keys if applicable: 'insuranceType', 'vehicleYear', 'vehicleMake', 'vehicleModel', 'budgetMonthly', 'propertyType', 'age', 'name', 'location'. (e.g. if they say "I have a 1999 tesla", extractedEntities should be {"vehicleYear": "1999", "vehicleMake": "Tesla"}).
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "parsedValue": "The structured answer to the question",
+  "extractedEntities": {
+    "key": "value"
+  }
+}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: AI_MODEL,
+      max_tokens: 500,
+      messages: [
+        { role: "system", content: "You are an expert data parser. Respond only with valid JSON." },
+        { role: "user", content: prompt },
+      ],
+    });
+
+    const raw = response.choices[0]?.message?.content ?? "";
+    let result = { parsedValue: answer, extractedEntities: {} };
+    
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        result = JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error("Failed to parse AI Answer JSON, falling back.", e);
+    }
+    
+    res.json(result);
+  } catch (err) {
+    console.error("Parse answer error:", err);
+    res.status(500).json({ error: "ai_error", message: "Failed to parse answer" });
   }
 });
 

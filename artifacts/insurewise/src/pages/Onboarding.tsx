@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, User as UserIcon, Bot, Loader2, Check } from "lucide-react";
-import { useUpsertUserProfile } from "@workspace/api-client-react";
+import { useUpsertUserProfile, useAiParseAnswer } from "@workspace/api-client-react";
 import { useStore } from "@/store/use-store";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -56,7 +56,22 @@ const BASE_QUESTIONS: Question[] = [
           },
         ];
       }
-      return null;
+      // If the answer is completely unrecognized ("i don't know", random letters, etc.)
+      // It defaults to Auto. We handled the user-facing message in handleSend, but here we must return the followUps for Auto.
+      return [
+        {
+          id: "vehicleMake",
+          text: "What's the make and model of your vehicle? (e.g. Toyota Camry)",
+          suggestions: ["Toyota Camry", "Honda Civic", "Ford F-150", "Tesla Model 3", "Chevrolet Silverado"],
+          placeholder: "Make and model...",
+        },
+        {
+          id: "vehicleYear",
+          text: "And what year is it?",
+          suggestions: ["2024", "2023", "2022", "2021", "2020", "2019 or older"],
+          placeholder: "Vehicle year...",
+        },
+      ];
     },
   },
   {
@@ -145,9 +160,9 @@ function buildProfile(answers: Answers) {
 
   const insuranceType = insType.includes("auto") || insType.includes("car") ? "auto"
     : insType.includes("home") || insType.includes("house") ? "home"
-    : insType.includes("rent") ? "renters"
-    : insType.includes("health") ? "health"
-    : "life";
+      : insType.includes("rent") ? "renters"
+        : insType.includes("health") ? "health"
+          : "life";
 
   const requirements = answers.requirements
     ? answers.requirements.split(",").map((r) => r.trim()).filter(Boolean)
@@ -187,6 +202,7 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { setUserProfileId } = useStore();
   const profileMutation = useUpsertUserProfile();
+  const parseMutation = useAiParseAnswer();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [questionQueue, setQuestionQueue] = useState<Question[]>([]);
@@ -196,6 +212,9 @@ export default function Onboarding() {
   const [selected, setSelected] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -209,13 +228,17 @@ export default function Onboarding() {
 
   // Auto-scroll
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isSaving]);
+    // A small timeout ensures the new message is fully rendered before calculating scroll pos
+    const timeoutId = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [messages, isSaving, currentQuestion]);
 
-  const advanceToNext = async (answer: string, questionId: string, queue: Question[]) => {
-    const newAnswers = { ...answers, [questionId]: answer };
+  const advanceToNext = async (answer: string, questionId: string, queue: Question[], parsedEntities?: Record<string, any>) => {
+    const newAnswers = { ...answers, [questionId]: answer, ...(parsedEntities || {}) };
     setAnswers(newAnswers);
 
     // Add follow-up questions from the current question's followUp fn
@@ -225,7 +248,18 @@ export default function Onboarding() {
       extraQuestions = currentQ.followUp(answer) || [];
     }
 
-    const fullQueue = [...extraQuestions, ...queue];
+    let fullQueue = [...extraQuestions, ...queue];
+
+    // Remove any questions that have already been answered (e.g. via AI extraction)
+    fullQueue = fullQueue.filter(q => {
+      // If the question requires multiSelect, check if its id exists and has at least some content
+      if (q.multiSelect) {
+        return !newAnswers[q.id] || newAnswers[q.id].length === 0;
+      }
+      return !newAnswers[q.id];
+    });
+
+    console.log("ADVANCING. Current ID:", questionId, "Q_QUEUE passed:", queue, "Extra:", extraQuestions, "Full generated:", fullQueue);
 
     if (fullQueue.length === 0) {
       // Done — save profile
@@ -268,11 +302,111 @@ export default function Onboarding() {
       if (!answer) return;
     }
 
+    let finalAnswer = answer;
+    let extractedEntities: Record<string, any> | undefined;
+
+    if (!currentQuestion.multiSelect) {
+      if (currentQuestion.suggestions) {
+        // If there are suggestions, check if it's an exact match
+        const matchesSuggestion = currentQuestion.suggestions.some(s => s.toLowerCase() === answer.toLowerCase());
+
+        if (!matchesSuggestion) {
+          // It's a free-form answer for a multiple-choice question. Use AI to parse and classify it.
+          setIsParsing(true);
+          try {
+            const res = await parseMutation.mutateAsync({
+              data: {
+                questionId: currentQuestion.id,
+                questionText: currentQuestion.text,
+                answer: answer,
+              }
+            });
+            finalAnswer = res.parsedValue;
+            extractedEntities = res.extractedEntities;
+
+            // Let the fallback block below handle any unrecognized answers
+          } catch (e) {
+            console.error("Failed to parse via AI", e);
+          }
+          setIsParsing(false);
+        }
+      } else {
+        // It's a completely open-ended question (like Name). Parse it just in case there's extra context.
+        setIsParsing(true);
+        try {
+          const res = await parseMutation.mutateAsync({
+            data: {
+              questionId: currentQuestion.id,
+              questionText: currentQuestion.text,
+              answer: answer,
+            }
+          });
+          finalAnswer = res.parsedValue;
+          extractedEntities = res.extractedEntities;
+        } catch (e) {
+          console.error("Failed to parse open-ended via AI", e);
+        }
+        setIsParsing(false);
+      }
+    }
+
     setMessages((prev) => [...prev, { role: "user", content: answer }]);
+
+    // Validate the AI's final answer against required suggestions if they exist
+    let isInvalidChoice = false;
+    if (currentQuestion.suggestions && finalAnswer && finalAnswer.toLowerCase() !== "null") {
+      isInvalidChoice = !currentQuestion.suggestions.some(s => s.toLowerCase() === finalAnswer.toLowerCase());
+    }
+
+    const hasExtractedEntities = extractedEntities && Object.keys(extractedEntities).length > 0;
+
+    // Fallback if AI explicitly returns null/invalid because the answer was completely useless
+    // OR if the parsed value still doesn't match any valid suggestion for a strict-choice question
+    // BUT we shouldn't block progress if it successfully extracted side-entities (e.g. they typed "Honda model 3" on the Name question)
+    if ((!finalAnswer || finalAnswer.toLowerCase() === "null" || isInvalidChoice) && !hasExtractedEntities) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "I'm not quite sure what you meant by that. Could you try selecting one of the options below, or rephrasing?"
+        }
+      ]);
+      setInput("");
+      return;
+    }
+
+    // If finalAnswer was null but we extracted entities, we shouldn't save "null" or the raw string to the primary question ID.
+    if ((!finalAnswer || finalAnswer.toLowerCase() === "null" || isInvalidChoice) && hasExtractedEntities) {
+      finalAnswer = ""; // clear the primary answer so they are asked this question again if it's mandatory
+    }
+
+    // Add visual feedback about the AI's deductions
+    if (extractedEntities && Object.keys(extractedEntities).length > 0) {
+      const formattedKeys = Object.keys(extractedEntities)
+        .map(k => k.replace(/([A-Z])/g, " $1").toLowerCase().trim())
+        .join(", ");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Got it! I've also noted down your ${formattedKeys} so we can skip those questions.`
+        }
+      ]);
+    } else if (finalAnswer !== answer && !extractedEntities) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `I've recorded that as "${finalAnswer}" for our system.`
+        }
+      ]);
+    }
+
     setInput("");
     setSelected([]);
 
-    await advanceToNext(answer, currentQuestion.id, questionQueue);
+    await advanceToNext(finalAnswer, currentQuestion.id, questionQueue, extractedEntities);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -289,6 +423,24 @@ export default function Onboarding() {
     }
   };
 
+  const saveEdit = (k: string) => {
+    if (!editValue.trim()) {
+      deleteEdit(k);
+      return;
+    }
+    setAnswers(prev => ({ ...prev, [k]: editValue }));
+    setEditingKey(null);
+  };
+
+  const deleteEdit = (k: string) => {
+    setAnswers(prev => {
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+    setEditingKey(null);
+  };
+
   const totalSteps = BASE_QUESTIONS.length;
   const completedSteps = Object.keys(answers).filter(
     (k) => BASE_QUESTIONS.some((q) => q.id === k)
@@ -299,146 +451,233 @@ export default function Onboarding() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 py-8 flex flex-col max-w-3xl">
-        {/* Progress bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
-            <span>Profile setup</span>
-            <span>{progress}% complete</span>
-          </div>
-          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-primary rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4 }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-border flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-border bg-gray-50/50 flex items-center gap-4">
-            <img
-              src={`${import.meta.env.BASE_URL}images/avatar-ai.png`}
-              alt="AI Avatar"
-              className="w-12 h-12 rounded-full border-2 border-primary/20 bg-white object-cover"
-            />
-            <div>
-              <h2 className="font-bold text-lg text-foreground">InsureWise Assistant</h2>
-              <p className="text-sm flex items-center gap-1.5 text-emerald-600">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Online
-              </p>
+      <main className="flex-1 container mx-auto px-4 py-8 flex gap-6 max-w-5xl">
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Progress bar */}
+          <div className="mb-4">
+            <div className="flex justify-between text-sm text-muted-foreground mb-1.5">
+              <span>Profile setup</span>
+              <span>{progress}% complete</span>
+            </div>
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.4 }}
+              />
             </div>
           </div>
 
-          {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
-            <AnimatePresence initial={false}>
-              {messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-                >
-                  <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm ${
-                    msg.role === "user" ? "bg-primary text-white" : "bg-primary/10 text-primary"
-                  }`}>
-                    {msg.role === "user" ? <UserIcon size={16} /> : <Bot size={16} />}
-                  </div>
-                  <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                    msg.role === "user"
+          <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-border flex-1 flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border bg-gray-50/50 flex items-center gap-4">
+              <img
+                src={`${import.meta.env.BASE_URL}images/avatar-ai.png`}
+                alt="AI Avatar"
+                className="w-12 h-12 rounded-full border-2 border-primary/20 bg-white object-cover"
+              />
+              <div>
+                <h2 className="font-bold text-lg text-foreground">InsureWise Assistant</h2>
+                <p className="text-sm flex items-center gap-1.5 text-emerald-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Online
+                </p>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
+              <AnimatePresence initial={false}>
+                {messages.map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                  >
+                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm ${msg.role === "user" ? "bg-primary text-white" : "bg-primary/10 text-primary"
+                      }`}>
+                      {msg.role === "user" ? <UserIcon size={16} /> : <Bot size={16} />}
+                    </div>
+                    <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
                       ? "bg-primary text-primary-foreground rounded-tr-sm"
                       : "bg-gray-100 text-foreground rounded-tl-sm border border-border/50"
-                  }`}>
-                    {msg.content}
+                      }`}>
+                      {msg.content}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {isParsing && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-3"
+                >
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary">
+                    <Bot size={16} />
+                  </div>
+                  <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-gray-100 border border-border/50 text-foreground text-sm flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin text-muted-foreground delay-0" />
+                    <span className="text-muted-foreground animate-pulse">Analyzing your answer...</span>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isSaving && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3"
-              >
-                <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center bg-emerald-100 text-emerald-600">
-                  <Check size={16} />
-                </div>
-                <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
-                  <Loader2 size={14} className="animate-spin" />
-                  Building your profile and finding matches...
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Suggestions + Input */}
-          {!isComplete && currentQuestion && (
-            <div className="border-t border-border bg-white p-4 space-y-3">
-              {/* Suggestion chips */}
-              {currentQuestion.suggestions && currentQuestion.suggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {currentQuestion.suggestions.map((s) => {
-                    const isActive = selected.includes(s);
-                    return (
-                      <motion.button
-                        key={s}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => handleSuggestionClick(s)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                          isActive
-                            ? "bg-primary text-white border-primary"
-                            : "bg-white text-foreground border-border hover:border-primary hover:text-primary"
-                        }`}
-                      >
-                        {currentQuestion.multiSelect && isActive && (
-                          <Check size={12} className="inline mr-1" />
-                        )}
-                        {s}
-                      </motion.button>
-                    );
-                  })}
-                </div>
               )}
 
-              {/* Text input */}
-              <form
-                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="relative flex items-center"
-              >
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={currentQuestion.placeholder || "Type your answer..."}
-                  className="w-full pl-5 pr-14 py-3.5 rounded-full bg-gray-50 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm text-foreground"
-                />
-                <button
-                  type="submit"
-                  disabled={
-                    currentQuestion.multiSelect
-                      ? selected.length === 0 && !input.trim()
-                      : !input.trim()
-                  }
-                  className="absolute right-2 p-2 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              {isSaving && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-3"
                 >
-                  <Send size={16} className="ml-0.5" />
-                </button>
-              </form>
-
-              {currentQuestion.multiSelect && selected.length > 0 && (
-                <p className="text-xs text-muted-foreground pl-2">
-                  {selected.length} selected — hit send when done
-                </p>
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center bg-emerald-100 text-emerald-600">
+                    <Check size={16} />
+                  </div>
+                  <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Building your profile and finding matches...
+                  </div>
+                </motion.div>
               )}
             </div>
-          )}
+
+            {/* Suggestions + Input */}
+            {!isComplete && currentQuestion && (
+              <div className="border-t border-border bg-white p-4 space-y-3">
+                {/* Suggestion chips */}
+                {currentQuestion.suggestions && currentQuestion.suggestions.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {currentQuestion.suggestions.map((s) => {
+                      const isActive = selected.includes(s);
+                      return (
+                        <motion.button
+                          key={s}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => handleSuggestionClick(s)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${isActive
+                            ? "bg-primary text-white border-primary"
+                            : "bg-white text-foreground border-border hover:border-primary hover:text-primary"
+                            }`}
+                        >
+                          {currentQuestion.multiSelect && isActive && (
+                            <Check size={12} className="inline mr-1" />
+                          )}
+                          {s}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Text input */}
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                  className="relative flex items-center"
+                >
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={currentQuestion.placeholder || "Type your answer..."}
+                    className="w-full pl-5 pr-14 py-3.5 rounded-full bg-gray-50 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm text-foreground"
+                  />
+                  <button
+                    type="submit"
+                    disabled={
+                      currentQuestion.multiSelect
+                        ? selected.length === 0 && !input.trim()
+                        : !input.trim()
+                    }
+                    className="absolute right-2 p-2 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Send size={16} className="ml-0.5" />
+                  </button>
+                </form>
+
+                {currentQuestion.multiSelect && selected.length > 0 && (
+                  <p className="text-xs text-muted-foreground pl-2">
+                    {selected.length} selected — hit send when done
+                  </p>
+                )}
+              </div>
+            )}
+            {/* Dummy div to scroll to includes the input form now */}
+            <div ref={scrollRef} className="h-4" />
+          </div>
         </div>
+
+        {/* Sidebar for Tracked Data */}
+        <aside className="w-80 hidden lg:block shrink-0">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-border sticky top-24">
+            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              Captured Details
+            </h3>
+            {Object.keys(answers).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No details captured yet.</p>
+            ) : (
+              <div className="space-y-4">
+                <AnimatePresence>
+                  {Object.entries(answers).map(([k, v]) => {
+                    // Filter out internal falsey stuff if needed
+                    if (!v && v !== "") return null;
+                    const label = k.replace(/([A-Z])/g, " $1").trim().replace(/^./, str => str.toUpperCase());
+                    
+                    const isEditing = editingKey === k;
+
+                    return (
+                      <motion.div
+                        key={k}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex flex-col border-b border-border/50 pb-3 last:border-0 last:pb-0 group"
+                      >
+                        <span className="text-xs text-muted-foreground font-medium mb-1 flex justify-between items-center">
+                          {label}
+                          {!isEditing && (
+                            <button 
+                              onClick={() => { setEditingKey(k); setEditValue(String(v)); }}
+                              className="text-primary/0 group-hover:text-primary transition-colors text-[10px] underline hover:no-underline"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </span>
+                        {isEditing ? (
+                          <div className="flex gap-2 items-center mt-1">
+                            <input 
+                              type="text" 
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="flex-1 min-w-0 bg-gray-50 border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveEdit(k);
+                                if (e.key === 'Escape') setEditingKey(null);
+                              }}
+                            />
+                            <button onClick={() => saveEdit(k)} className="text-emerald-600 hover:text-emerald-700 p-1 bg-emerald-50 rounded-md">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => deleteEdit(k)} className="text-red-500 hover:text-red-600 p-1 bg-red-50 rounded-md">
+                              <span className="sr-only">Delete</span>
+                              &times;
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-medium text-foreground">{String(v)}</span>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+        </aside>
       </main>
     </div>
   );
