@@ -16,7 +16,8 @@
     "cors": "^2",
     "dotenv": "^17.3.1",
     "drizzle-orm": "catalog:",
-    "express": "^5"
+    "express": "^5",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

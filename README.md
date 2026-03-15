@@ -9,6 +9,7 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 - **AI Policy Explainer** — plain-language breakdown of what's covered, partially covered, and missing
 - **Auto-Fill Applications** — pre-populated forms from your profile data
 - **Premium Optimizer** — hyper-specific AI tips to lower your premium (location, credit score, deductible, bundling, etc.)
+- **Moorcheh Knowledge Assistant** — dedicated AI RAG powered by Moorcheh executing Python backend worker processes to provide verified insurance answers.
 - **Profile Management** — edit your details and re-run the optimizer at any time
 
 ## Tech Stack
@@ -19,6 +20,7 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 | State | Zustand (localStorage persisted) |
 | Backend | Express 5 (Node.js) |
 | Database | PostgreSQL + Drizzle ORM |
+| RAG Engine | Moorcheh AI (via Python `moorcheh-sdk`) |
 | AI | GPT-OSS 120B (OpenAI-compatible API) |
 | Monorepo | pnpm workspaces |
 
@@ -31,7 +33,9 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 - **Node.js** v20.19+ or v22.12+ (required by Vite). Check with `node -v`. If needed, use [nvm](https://github.com/nvm-sh/nvm): `nvm install 22 && nvm use 22`.
 - **pnpm** v9+ — install with `npm install -g pnpm`, or use `npx pnpm` in place of `pnpm` for every command below.
 - **PostgreSQL** — local (see below) or a hosted DB (e.g. [Neon](https://neon.tech), [Supabase](https://supabase.com)).
+- **Python 3.10+** - required to run the Moorcheh SDK backend workers.
 - **Anthropic API key** — optional for basic run; needed for Optimizer and Policy Explainer. Get one at [console.anthropic.com](https://console.anthropic.com).
+- **Moorcheh API Key** — mandatory for the Insurance Knowledge Assistant RAG workflows. Get one at [console.moorcheh.ai](https://console.moorcheh.ai/api-keys).
 
 ### 1. Clone and install
 
@@ -58,6 +62,9 @@ DATABASE_URL=postgresql://YOUR_USERNAME@localhost:5432/insurewise
 OPENAI_API_KEY=test
 OPENAI_BASE_URL=https://vjioo4r1vyvcozuj.us-east-2.aws.endpoints.huggingface.cloud/v1
 AI_MODEL=openai/gpt-oss-120b
+
+# Moorcheh Python API Key (Knowledge Engine)
+MOORCHEH_API_KEY=your_key_here
 
 # To use your own OpenAI account instead, set:
 # OPENAI_API_KEY=sk-your-key-here
@@ -97,6 +104,20 @@ pnpm --filter @workspace/db run push
 ```
 
 This creates the users, conversations, and messages tables.
+
+### 5. Install Python Dependencies & Seed Moorcheh
+
+Our application uses official Python packages to connect sequentially to the Moorcheh Semantic Memory backend.
+
+```bash
+pip3 install -r artifacts/api-server/src/python-workers/requirements.txt
+```
+
+Before running the application, make sure to push the mock insurance knowledge packages to Moorcheh's servers using the seed script (this uses the `MOORCHEH_API_KEY` defined in `api-server/.env`):
+
+```bash
+python3 scripts/seed-moorcheh.py
+```
 
 ### 5. Start both servers
 
@@ -165,6 +186,8 @@ npx concurrently \
 | POST | `/api/insurance/applications/submit` | Submit application |
 | POST | `/api/insurance/optimize-profile` | AI premium optimization tips |
 | POST | `/api/ai/chat` | Conversational onboarding AI |
+| POST | `/api/ai/parse-answer` | AI parsing unstructured answers |
+| POST | `/api/ai/ask-expert` | Queries Moorcheh Semantic Backend |
 
 ---
 
@@ -183,3 +206,4 @@ pnpm --filter @workspace/api-spec run codegen
 - **Session identity** is managed via the `x-session-id` request header. The frontend assigns a UUID per browser session stored in localStorage.
 - **Policy data** is mocked in `artifacts/api-server/src/lib/mockPolicies.ts` — 5 auto policies and 1 home policy with full coverage maps and scoring logic.
 - **The Optimizer and Policy Explainer** both make live calls to Claude Haiku, so they require a valid Anthropic API key even in development.
+- **The Knowledge Assistant** uses the Python `moorcheh-sdk` to execute semantic document retrieval, requiring Python `3.10`+ to be installed locally to successfully spawn the child worker processes locally.
