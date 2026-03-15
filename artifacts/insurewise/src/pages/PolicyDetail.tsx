@@ -132,10 +132,10 @@ export default function PolicyDetail() {
             <p className="text-xs text-gray-500">We'll auto-fill your application next.</p>
           </div>
           <Link 
-            href={`/apply/${policyId}`}
+            href="/profile"
             className="px-8 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
           >
-            Edit Details
+            Edit Profile Details
             <ChevronRight className="w-5 h-5" />
           </Link>
         </div>
