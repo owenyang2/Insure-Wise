@@ -32,6 +32,8 @@ import type {
   HandoffRequest,
   HandoffResult,
   HealthStatus,
+  ParseDecPageRequest,
+  ParseDecPageResponse,
   SearchPoliciesRequest,
   SearchPoliciesResponse,
   SubmitApplicationRequest,
@@ -974,4 +976,90 @@ export const useAiChat = <
   TContext
 > => {
   return useMutation(getAiChatMutationOptions(options));
+};
+
+/**
+ * @summary Extract fields from an uploaded insurance declarations page
+ */
+export const getParseDecPageUrl = () => {
+  return `/api/ai/parse-dec-page`;
+};
+
+export const parseDecPage = async (
+  parseDecPageRequest: ParseDecPageRequest,
+  options?: RequestInit,
+): Promise<ParseDecPageResponse> => {
+  return customFetch<ParseDecPageResponse>(getParseDecPageUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(parseDecPageRequest),
+  });
+};
+
+export const getParseDecPageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseDecPage>>,
+    TError,
+    { data: BodyType<ParseDecPageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof parseDecPage>>,
+  TError,
+  { data: BodyType<ParseDecPageRequest> },
+  TContext
+> => {
+  const mutationKey = ["parseDecPage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof parseDecPage>>,
+    { data: BodyType<ParseDecPageRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return parseDecPage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ParseDecPageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof parseDecPage>>
+>;
+export type ParseDecPageMutationBody = BodyType<ParseDecPageRequest>;
+export type ParseDecPageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Extract fields from an uploaded insurance declarations page
+ */
+export const useParseDecPage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof parseDecPage>>,
+    TError,
+    { data: BodyType<ParseDecPageRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof parseDecPage>>,
+  TError,
+  { data: BodyType<ParseDecPageRequest> },
+  TContext
+> => {
+  return useMutation(getParseDecPageMutationOptions(options));
 };

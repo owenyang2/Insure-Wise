@@ -376,3 +376,20 @@ export interface AskExpertResponse {
   answer: string;
   contextCount: number;
 }
+
+export interface ParseDecPageRequest {
+  /** Base64-encoded file content (image or PDF) */
+  imageData: string;
+  /** MIME type: image/jpeg, image/png, image/heic, or application/pdf */
+  mimeType: string;
+}
+
+/**
+ * Extracted field values, null if not found
+ */
+export type ParseDecPageResponseFields = { [key: string]: string | null };
+
+export interface ParseDecPageResponse {
+  /** Extracted field values, null if not found */
+  fields: ParseDecPageResponseFields;
+}

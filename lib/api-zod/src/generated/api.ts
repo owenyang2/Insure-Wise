@@ -476,3 +476,23 @@ export const AiChatResponse = zod.object({
   isComplete: zod.boolean(),
   nextQuestion: zod.string().optional(),
 });
+
+/**
+ * @summary Extract fields from an uploaded insurance declarations page
+ */
+export const ParseDecPageBody = zod.object({
+  imageData: zod
+    .string()
+    .describe("Base64-encoded file content (image or PDF)"),
+  mimeType: zod
+    .string()
+    .describe(
+      "MIME type: image\/jpeg, image\/png, image\/heic, or application\/pdf",
+    ),
+});
+
+export const ParseDecPageResponse = zod.object({
+  fields: zod
+    .record(zod.string(), zod.string().nullable())
+    .describe("Extracted field values, null if not found"),
+});

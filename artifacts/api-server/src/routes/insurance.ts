@@ -16,109 +16,11 @@ import type { QuoteResult, AutoInputs, HomeInputs, RentersInputs } from "../lib/
 
 const router: IRouter = Router();
 
-// ─── Search helpers ───────────────────────────────────────────────────────────
-
-/** Infer a home/renters region key from a free-text location string */
-function inferRegion(location: string): string {
-  const l = location.toLowerCase();
-  if (/toronto|scarborough|north york|etobicoke|\bm\d/i.test(l)) return "ON_urban";
-  if (/mississauga|brampton|vaughan|markham|richmond hill|\bl\d/i.test(l)) return "ON_sub";
-  if (/ottawa|kingston|\bk\d/i.test(l)) return "ON_rural";
-  if (/london|windsor|kitchener|waterloo|hamilton|\bn\d/i.test(l)) return "ON_sub";
-  if (/sudbury|thunder bay|sault|\bp\d/i.test(l)) return "ON_rural";
-  if (/vancouver|surrey|burnaby|richmond|\bv\d/i.test(l)) return "BC_urban";
-  if (/victoria|kelowna|abbotsford/i.test(l)) return "BC_sub";
-  if (/alberta|calgary|edmonton|\bt\d/i.test(l)) return "AB";
-  if (/quebec|montreal|laval|\bh\d/i.test(l)) return "QC";
-  if (/new brunswick|nova scotia|pei|newfoundland|atlantic|\be\d|\bb\d|\bc\d|\ba\d/i.test(l)) return "AT";
-  return "ON_sub";
-}
-
-/** Extract health/life province from a free-text location string */
-function inferProvince(location: string): string {
-  const l = location.toLowerCase();
-  if (/ontario|toronto|ottawa|\bon\b/i.test(l)) return "ON";
-  if (/british columbia|vancouver|\bbc\b/i.test(l)) return "BC";
-  if (/alberta|calgary|edmonton|\bab\b/i.test(l)) return "AB";
-  if (/quebec|montreal|\bqc\b/i.test(l)) return "QC";
-  if (/atlantic|nova scotia|new brunswick|pei|newfoundland/i.test(l)) return "AT";
-  return "ON";
-}
-
-/** Extract a Canadian FSA (first 3 chars of postal code) from a location string */
-function extractPostalPrefix(location: string): string {
-  const m = location.match(/\b([A-Za-z]\d[A-Za-z])\b/);
-  if (m) return m[1].toUpperCase()[0];
-  const l = location.toLowerCase();
-  if (/toronto|scarborough|north york|etobicoke/i.test(l)) return "M";
-  if (/mississauga|brampton|vaughan|markham/i.test(l)) return "L";
-  if (/ottawa|kingston/i.test(l)) return "K";
-  if (/london|windsor|kitchener|waterloo|hamilton/i.test(l)) return "N";
-  if (/sudbury|thunder bay/i.test(l)) return "P";
-  if (/vancouver|surrey|burnaby/i.test(l)) return "V";
-  if (/calgary|edmonton/i.test(l)) return "T";
-  if (/montreal|laval/i.test(l)) return "H";
-  return location.trim()[0]?.toUpperCase() ?? "M";
-}
-
-/** Standard coverage items per insurance type — used for coverageSummary and gapCount */
-const STANDARD_COVERAGE: Record<string, string[]> = {
-  auto:    ["liability", "accident benefits", "uninsured motorist", "collision", "comprehensive"],
-  home:    ["dwelling", "contents", "personal liability", "additional living expenses", "detached structures"],
-  renters: ["contents", "personal liability", "additional living expenses", "loss of use"],
-  life:    ["death benefit", "terminal illness", "conversion option"],
-  health:  ["dental", "drugs", "vision", "extended health", "paramedical"],
-};
-
-/** Build a readable coverageSummary array from a QuoteResult */
-function buildCoverageSummary(insuranceType: string, q: QuoteResult) {
-  const standards: Record<string, Array<{ type: string; name: string; status: string; details: string; limit?: string }>> = {
-    auto: [
-      { type: "liability",         name: "Third-Party Liability",  status: "covered", details: "Up to $2,000,000 per occurrence",   limit: "$2,000,000" },
-      { type: "accident_benefits", name: "Accident Benefits",      status: "covered", details: "Ontario statutory accident benefits"               },
-      { type: "uninsured_motorist",name: "Uninsured Motorist",     status: "covered", details: "Coverage against uninsured drivers"                },
-      { type: "collision",         name: "Collision",              status: "covered", details: `$${q.deductible} deductible`,        limit: "ACV"        },
-      { type: "comprehensive",     name: "Comprehensive",          status: "covered", details: "Theft, weather, fire, vandalism",    limit: "ACV"        },
-    ],
-    home: [
-      { type: "dwelling",          name: "Dwelling",               status: "covered", details: "Replacement cost coverage"                          },
-      { type: "contents",          name: "Personal Property",      status: "covered", details: "Contents replacement cost"                          },
-      { type: "liability",         name: "Personal Liability",     status: "covered", details: "$1,000,000 personal liability",      limit: "$1,000,000" },
-      { type: "living_expenses",   name: "Additional Living",      status: "covered", details: "Up to 24 months if home uninhabitable"              },
-      { type: "detached_structures",name: "Detached Structures",   status: "covered", details: "Garage, shed, fence coverage"                       },
-    ],
-    renters: [
-      { type: "contents",          name: "Personal Property",      status: "covered", details: "Contents replacement cost"                          },
-      { type: "liability",         name: "Personal Liability",     status: "covered", details: "$1,000,000 personal liability",      limit: "$1,000,000" },
-      { type: "living_expenses",   name: "Additional Living",      status: "covered", details: "Temporary housing if unit uninhabitable"            },
-      { type: "loss_of_use",       name: "Loss of Use",            status: "covered", details: "Living costs while displaced"                       },
-    ],
-    life: [
-      { type: "death_benefit",     name: "Death Benefit",          status: "covered", details: "Lump-sum payment to beneficiary"                   },
-      { type: "terminal_illness",  name: "Terminal Illness",       status: "covered", details: "Advance payment on terminal diagnosis"              },
-      { type: "conversion",        name: "Conversion Option",      status: "covered", details: "Convert to permanent coverage without medical exam" },
-    ],
-    health: [
-      { type: "dental",            name: "Dental Care",            status: "covered", details: "Preventive, basic, and major dental"                },
-      { type: "drugs",             name: "Prescription Drugs",     status: "covered", details: "Formulary drug coverage"                            },
-      { type: "vision",            name: "Vision Care",            status: "covered", details: "Glasses, contacts, eye exams"                       },
-      { type: "paramedical",       name: "Paramedical",            status: "covered", details: "Physio, massage, chiro, psychologist"               },
-    ],
-  };
-  return (standards[insuranceType] ?? standards["auto"]).slice(0, 5);
-}
-
-/** Count requirements not covered by the standard coverage list for this type */
-function computeGapCount(requirements: string[], insuranceType: string): number {
-  const standard = STANDARD_COVERAGE[insuranceType] ?? STANDARD_COVERAGE["auto"];
-  let gaps = 0;
-  for (const req of requirements) {
-    const r = req.toLowerCase().trim();
-    const covered = standard.some(s => r.includes(s) || s.includes(r));
-    if (!covered) gaps++;
-  }
-  return gaps;
-}
+import {
+  inferRegion, inferProvince, extractPostalPrefix,
+  buildCoverageSummary, computeGapCount, savingsBand, impactLevel,
+  parseDecPageResponse,
+} from "../lib/routeHelpers.js";
 
 router.post("/insurance/search", async (req, res): Promise<void> => {
   // Normalize body so Zod accepts it: userProfileId can be number from client, schema expects string
@@ -129,10 +31,10 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
     location: raw.location != null && String(raw.location).trim() !== "" ? String(raw.location) : "Toronto, ON",
     priorities: raw.priorities && typeof raw.priorities === "object" && raw.priorities !== null
       ? {
-          price:   Number((raw.priorities as any).price)   || 34,
-          coverage: Number((raw.priorities as any).coverage) || 33,
-          rating:   Number((raw.priorities as any).rating)   || 33,
-        }
+        price: Number((raw.priorities as any).price) || 34,
+        coverage: Number((raw.priorities as any).coverage) || 33,
+        rating: Number((raw.priorities as any).rating) || 33,
+      }
       : { price: 34, coverage: 33, rating: 33 },
     requirements: Array.isArray(raw.requirements) ? raw.requirements : [],
     budgetMonthly: typeof raw.budgetMonthly === "number" ? raw.budgetMonthly : 200,
@@ -183,62 +85,62 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
 
   if (insuranceType === "auto") {
     quotes = calculateAutoQuotes({
-      postalCode:               postalPrefix,
-      vehicleMake:              vehicle.make  ?? "honda",
-      vehicleType:              vehicle.type  ?? "sedan",
-      vehicleValue:             vehicle.value ?? 30000,
-      vehicleYear:              vehicle.year,
-      annualKm:                 vehicle.km    ?? 15000,
-      primaryUse:               vehicle.use   ?? "commute",
+      postalCode: postalPrefix,
+      vehicleMake: vehicle.make ?? "honda",
+      vehicleType: vehicle.type ?? "sedan",
+      vehicleValue: vehicle.value ?? 30000,
+      vehicleYear: vehicle.year,
+      annualKm: vehicle.km ?? 15000,
+      primaryUse: vehicle.use ?? "commute",
       driverAge,
       yearsLicensed,
-      atFaultAccidents:         0,
-      convictions:              "none",
-      liability:                2000000,
-      collisionDeductible:      1000,
-      comprehensiveDeductible:  1000,
-      addons:                   [],
-      discounts:                [],
+      atFaultAccidents: 0,
+      convictions: "none",
+      liability: 2000000,
+      collisionDeductible: 1000,
+      comprehensiveDeductible: 1000,
+      addons: [],
+      discounts: [],
     });
   } else if (insuranceType === "home") {
     quotes = calculateHomeQuotes({
-      region:       property.region       ?? inferRegion(locationStr),
+      region: property.region ?? inferRegion(locationStr),
       dwellingType: property.dwellingType ?? "detached",
       rebuildValue: property.rebuildValue ?? 500000,
-      homeAge:      property.homeAge      ?? 20,
-      heatingType:  property.heatingType  ?? "gas",
-      claimsCount:  0,
-      deductible:   1000,
-      addons:       [],
-      discounts:    [],
+      homeAge: property.homeAge ?? 20,
+      heatingType: property.heatingType ?? "gas",
+      claimsCount: 0,
+      deductible: 1000,
+      addons: [],
+      discounts: [],
     });
   } else if (insuranceType === "renters") {
     quotes = calculateRentersQuotes({
-      region:        property.region ?? inferRegion(locationStr),
+      region: property.region ?? inferRegion(locationStr),
       contentsValue: 35000,
-      claimsCount:   0,
-      deductible:    500,
-      addons:        [],
-      discounts:     [],
+      claimsCount: 0,
+      deductible: 500,
+      addons: [],
+      discounts: [],
     });
   } else if (insuranceType === "life") {
     quotes = calculateLifeQuotes({
-      age:            driverAge,
-      gender:         "male",
-      smokingStatus:  "non_smoker",
-      healthClass:    "standard_plus",
-      product:        "term20",
+      age: driverAge,
+      gender: "male",
+      smokingStatus: "non_smoker",
+      healthClass: "standard_plus",
+      product: "term20",
       coverageAmount: 1_000_000,
     });
   } else if (insuranceType === "health") {
     quotes = calculateHealthQuotes({
-      age:         driverAge,
-      province:    inferProvince(locationStr),
-      familySize:  "single",
+      age: driverAge,
+      province: inferProvince(locationStr),
+      familySize: "single",
       preExisting: "none",
-      planTier:    "standard",
-      deductible:  0,
-      products:    ["dental", "drugs"],
+      planTier: "standard",
+      deductible: 0,
+      products: ["dental", "drugs"],
     });
   } else {
     // Unknown type — fall back to auto
@@ -274,26 +176,26 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
   const gapCount = computeGapCount(requirements, insuranceType);
 
   const policies = filtered.map(q => ({
-    id:             q.id,
-    insurerName:    q.insurerName,
-    insurerLogo:    q.insurerName.substring(0, 2).toUpperCase(),
-    planName:       q.planName,
+    id: q.id,
+    insurerName: q.insurerName,
+    insurerLogo: q.insurerName.substring(0, 2).toUpperCase(),
+    planName: q.planName,
     monthlyPremium: q.monthlyPremium,
-    annualPremium:  q.annualPremium,
-    deductible:     q.deductible,
-    matchScore:     q.baseMatchScore,
-    priceScore:     q.priceScore,
-    coverageScore:  q.coverageScore,
-    ratingScore:    q.ratingScore,
-    overallRating:  q.overallRating,
-    reviewCount:    q.reviewCount,
+    annualPremium: q.annualPremium,
+    deductible: q.deductible,
+    matchScore: q.baseMatchScore,
+    priceScore: q.priceScore,
+    coverageScore: q.coverageScore,
+    ratingScore: q.ratingScore,
+    overallRating: q.overallRating,
+    reviewCount: q.reviewCount,
     coverageSummary: buildCoverageSummary(insuranceType, q),
     gapCount,
-    highlights:     q.highlights,
-    warnings:       q.warnings,
-    url:            q.url,
-    telematics:     q.telematics,
-    breakdown:      q.breakdown,
+    highlights: q.highlights,
+    warnings: q.warnings,
+    url: q.url,
+    telematics: q.telematics,
+    breakdown: q.breakdown,
   }));
 
   const summary = getQuoteSummary(filtered);
@@ -302,12 +204,12 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
   if (filtered.length > 0) {
     const cheapest = filtered[0];
     db.insert(quoteResultsTable).values({
-      userProfileId:   userProfileId ? Number(userProfileId) : null,
+      userProfileId: userProfileId ? Number(userProfileId) : null,
       insuranceType,
-      inputsSnapshot:  {
+      inputsSnapshot: {
         postalCode: (req.body as any).postalCode,
-        location:   locationStr,
-        age:        profile?.age,
+        location: locationStr,
+        age: profile?.age,
         insuranceType,
         budgetMonthly,
         vehicleDetails: profile?.vehicleDetails,
@@ -318,7 +220,7 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
         monthlyPremium: q.monthlyPremium, annualPremium: q.annualPremium,
         priceScore: q.priceScore, ratingScore: q.ratingScore,
       })),
-      resultCount:     filtered.length,
+      resultCount: filtered.length,
       cheapestMonthly: cheapest.monthlyPremium,
       cheapestCarrier: cheapest.insurerName,
     }).catch(() => { /* non-critical — swallow DB errors silently */ });
@@ -326,7 +228,7 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
 
   res.json({
     policies,
-    totalFound:     policies.length,
+    totalFound: policies.length,
     searchDuration: (Date.now() - start) / 1000,
     summary,
   });
@@ -355,28 +257,28 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
   };
   const syntheticMonthly = 150; // placeholder; real premium patched in from engine below
   let policy: SyntheticPolicy = {
-      id:           rawId,
-      insurerName:  rawId,   // UI uses this as display name; carrier name shown via search
-      insurerLogo:  rawId.substring(0, 2).toUpperCase(),
-      planName:     `Policy — ${rawId}`,
-      monthlyPremium: syntheticMonthly,
-      annualPremium:  syntheticMonthly * 12,
-      deductible:   1000,
-      overallRating: 4.0,
-      reviewCount:  500,
-      baseMatchScore: 0.75,
-      priceScore:   0.75,
-      coverageScore: 0.75,
-      ratingScore:  0.80,
-      highlights:   ["Coverage details available from your selected insurer"],
-      warnings:     [],
-      coverageMap:  {
-        "Third-Party Liability":   { status: "covered", details: "Up to $2,000,000",           limit: "$2,000,000" },
-        "Accident Benefits":       { status: "covered", details: "Ontario statutory benefits",  limit: "Per SABS"   },
-        "Uninsured Motorist":      { status: "covered", details: "Protection against uninsured drivers" },
-        "Collision":               { status: "covered", details: "Subject to deductible",       limit: "ACV"        },
-        "Comprehensive":           { status: "covered", details: "Theft, weather, fire",        limit: "ACV"        },
-      },
+    id: rawId,
+    insurerName: rawId,   // UI uses this as display name; carrier name shown via search
+    insurerLogo: rawId.substring(0, 2).toUpperCase(),
+    planName: `Policy — ${rawId}`,
+    monthlyPremium: syntheticMonthly,
+    annualPremium: syntheticMonthly * 12,
+    deductible: 1000,
+    overallRating: 4.0,
+    reviewCount: 500,
+    baseMatchScore: 0.75,
+    priceScore: 0.75,
+    coverageScore: 0.75,
+    ratingScore: 0.80,
+    highlights: ["Coverage details available from your selected insurer"],
+    warnings: [],
+    coverageMap: {
+      "Third-Party Liability": { status: "covered", details: "Up to $2,000,000", limit: "$2,000,000" },
+      "Accident Benefits": { status: "covered", details: "Ontario statutory benefits", limit: "Per SABS" },
+      "Uninsured Motorist": { status: "covered", details: "Protection against uninsured drivers" },
+      "Collision": { status: "covered", details: "Subject to deductible", limit: "ACV" },
+      "Comprehensive": { status: "covered", details: "Theft, weather, fire", limit: "ACV" },
+    },
   };
 
   // ── Run engine for this carrier to extract real breakdown data ───────────────
@@ -390,18 +292,18 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
   } catch { /* DB unavailable — proceed without profile */ }
 
   // Parse what we can from userContext ("Age: 35, Location: Toronto, ON, Budget: 2000")
-  const ageMatch  = userContext?.match(/Age:\s*(\d+)/i);
-  const locMatch  = userContext?.match(/Location:\s*([^,]+(?:,\s*[^,]+)?)/i);
-  const explainAge      = ageMatch ? parseInt(ageMatch[1], 10) : (profileForExplain?.age ?? 35);
+  const ageMatch = userContext?.match(/Age:\s*(\d+)/i);
+  const locMatch = userContext?.match(/Location:\s*([^,]+(?:,\s*[^,]+)?)/i);
+  const explainAge = ageMatch ? parseInt(ageMatch[1], 10) : (profileForExplain?.age ?? 35);
   const explainLocation = locMatch ? locMatch[1].trim() : (profileForExplain?.location ?? "Toronto, ON");
-  const explainType     = profileForExplain?.insuranceType ?? "auto";
-  const explainPostal   = extractPostalPrefix(explainLocation);
-  const explainYears    = Math.min(Math.max(explainAge - 16, 1), 40);
+  const explainType = profileForExplain?.insuranceType ?? "auto";
+  const explainPostal = extractPostalPrefix(explainLocation);
+  const explainYears = Math.min(Math.max(explainAge - 16, 1), 40);
 
   type VehicleJsonE = { make?: string; type?: string; value?: number; year?: number; km?: number; use?: string };
   type PropertyJsonE = { region?: string; dwellingType?: string; rebuildValue?: number; homeAge?: number; heatingType?: string };
-  const vehicleE   = (profileForExplain?.vehicleDetails  ?? {}) as VehicleJsonE;
-  const propertyE  = (profileForExplain?.propertyDetails ?? {}) as PropertyJsonE;
+  const vehicleE = (profileForExplain?.vehicleDetails ?? {}) as VehicleJsonE;
+  const propertyE = (profileForExplain?.propertyDetails ?? {}) as PropertyJsonE;
 
   let allQuotesForExplain: QuoteResult[] = [];
   try {
@@ -445,16 +347,16 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
   } catch { /* engine error — continue without breakdown */ }
 
   // Find this carrier and the cheapest in the run
-  const thisQuote     = allQuotesForExplain.find(q => q.id === rawId);
+  const thisQuote = allQuotesForExplain.find(q => q.id === rawId);
   const cheapestQuote = allQuotesForExplain[0]; // sorted ascending
 
   // Patch synthetic policy with real engine numbers when available
   if (thisQuote && policy.monthlyPremium === 150 /* placeholder */) {
-    (policy as any).insurerName    = thisQuote.insurerName;
-    (policy as any).planName       = thisQuote.planName;
+    (policy as any).insurerName = thisQuote.insurerName;
+    (policy as any).planName = thisQuote.planName;
     (policy as any).monthlyPremium = thisQuote.monthlyPremium;
-    (policy as any).annualPremium  = thisQuote.annualPremium;
-    (policy as any).deductible     = thisQuote.deductible;
+    (policy as any).annualPremium = thisQuote.annualPremium;
+    (policy as any).deductible = thisQuote.deductible;
   }
 
   // Build the engine context block injected into the LLM prompt
@@ -481,10 +383,9 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
       ``,
       `Top factors driving this price (sorted by impact):`,
       ...sortedFactors.map(f =>
-        `  • ${f.label}: ${f.impact} — ${
-          f.value > 1
-            ? `adds $${Math.round((f.value - 1) * thisQuote.breakdown.baseRate)} to base`
-            : `saves $${Math.round((1 - f.value) * thisQuote.breakdown.baseRate)} from base`
+        `  • ${f.label}: ${f.impact} — ${f.value > 1
+          ? `adds $${Math.round((f.value - 1) * thisQuote.breakdown.baseRate)} to base`
+          : `saves $${Math.round((1 - f.value) * thisQuote.breakdown.baseRate)} from base`
         }`
       ),
       ``,
@@ -610,8 +511,10 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
     .from(userProfilesTable)
     .where(eq(userProfilesTable.sessionId, sessionId));
 
-  const vehicle = profile?.vehicleDetails as { make?: string; model?: string; year?: number } | null;
-  const autoFilledCount = profile ? 8 : 0;
+  const vehicle = profile?.vehicleDetails as {
+    make?: string; model?: string; year?: number;
+    km?: number; use?: string;
+  } | null;
 
   const sections = [
     {
@@ -632,8 +535,8 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
         { fieldId: "vehicle_model", label: "Vehicle Model", value: vehicle?.model || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "vehicle_year", label: "Vehicle Year", value: vehicle?.year?.toString() || "", fieldType: "number" as const, required: true, editable: true },
         { fieldId: "vin", label: "VIN (optional)", value: "", fieldType: "text" as const, required: false, editable: true },
-        { fieldId: "annual_mileage", label: "Annual Mileage", value: "12000", fieldType: "number" as const, required: true, editable: true },
-        { fieldId: "primary_use", label: "Primary Use", value: "commute", fieldType: "select" as const, options: ["commute", "pleasure", "business", "farm"], required: true, editable: true },
+        { fieldId: "annual_mileage", label: "Annual Mileage", value: vehicle?.km?.toString() ?? "12000", fieldType: "number" as const, required: true, editable: true },
+        { fieldId: "primary_use", label: "Primary Use", value: vehicle?.use ?? "commute", fieldType: "select" as const, options: ["commute", "pleasure", "business", "farm"], required: true, editable: true },
       ],
     },
     {
@@ -646,6 +549,10 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
       ],
     },
   ];
+
+  const autoFilledCount = sections
+    .flatMap(s => s.fields)
+    .filter((f: { value: string }) => f.value !== "").length;
 
   const totalFields = sections.reduce((sum, s) => sum + s.fields.length, 0);
 
@@ -723,14 +630,6 @@ type OptimizationTip = {
   profileField: string | null;
 };
 
-/** Compute a ±15% savings band, ensuring min >= 1 */
-function savingsBand(saving: number, spreadLow = 0.85, spreadHigh = 1.15): [number, number] {
-  return [Math.max(1, Math.round(saving * spreadLow)), Math.round(saving * spreadHigh)];
-}
-
-function impactLevel(monthly: number, threshHigh = 20, threshMed = 8): "high" | "medium" | "low" {
-  return monthly >= threshHigh ? "high" : monthly >= threshMed ? "medium" : "low";
-}
 
 router.post("/insurance/optimize-profile", (req, res): void => {
   const { profile } = req.body as { profile?: Record<string, any> };
@@ -758,30 +657,30 @@ router.post("/insurance/optimize-profile", (req, res): void => {
   // ── AUTO ──────────────────────────────────────────────────────────────────
   if (!insuranceType || insuranceType === "auto") {
     const baseInputs: AutoInputs = {
-      postalCode:              postalPrefix,
-      vehicleMake:             vehicle.make  ?? "honda",
-      vehicleType:             vehicle.type  ?? "sedan",
-      vehicleValue:            vehicle.value ?? 30000,
-      vehicleYear:             vehicle.year,
-      annualKm:                vehicle.km    ?? 15000,
-      primaryUse:              vehicle.use   ?? "commute",
+      postalCode: postalPrefix,
+      vehicleMake: vehicle.make ?? "honda",
+      vehicleType: vehicle.type ?? "sedan",
+      vehicleValue: vehicle.value ?? 30000,
+      vehicleYear: vehicle.year,
+      annualKm: vehicle.km ?? 15000,
+      primaryUse: vehicle.use ?? "commute",
       driverAge,
       yearsLicensed,
-      atFaultAccidents:        0,
-      convictions:             "none",
-      liability:               2000000,
-      collisionDeductible:     1000,
+      atFaultAccidents: 0,
+      convictions: "none",
+      liability: 2000000,
+      collisionDeductible: 1000,
       comprehensiveDeductible: 1000,
-      addons:                  [],
-      discounts:               [],
+      addons: [],
+      discounts: [],
     };
 
     const baseline = calculateAutoQuotes(baseInputs);
     const cheapest = baseline[0];
-    const median   = baseline[Math.floor(baseline.length / 2)];
+    const median = baseline[Math.floor(baseline.length / 2)];
 
     // Scenario A — Winter tires (4% discount, FSRA-mandated in Ontario)
-    const withTires  = calculateAutoQuotes({ ...baseInputs, discounts: ["winter_tires"] });
+    const withTires = calculateAutoQuotes({ ...baseInputs, discounts: ["winter_tires"] });
     const tireSaving = cheapest.monthlyPremium - withTires[0].monthlyPremium;
     if (tireSaving > 0) {
       const [lo, hi] = savingsBand(tireSaving);
@@ -801,7 +700,7 @@ router.post("/insurance/optimize-profile", (req, res): void => {
     }
 
     // Scenario B — Home bundle (8% multi-line discount)
-    const withBundle  = calculateAutoQuotes({ ...baseInputs, discounts: ["home_bundle"] });
+    const withBundle = calculateAutoQuotes({ ...baseInputs, discounts: ["home_bundle"] });
     const bundleSaving = cheapest.monthlyPremium - withBundle[0].monthlyPremium;
     if (bundleSaving > 0) {
       const [lo, hi] = savingsBand(bundleSaving);
@@ -822,8 +721,8 @@ router.post("/insurance/optimize-profile", (req, res): void => {
 
     // Scenario C — Raise collision deductible $1,000 → $2,000 (saves ~5% on coverage loading)
     if (baseInputs.collisionDeductible < 2000) {
-      const withHighDed  = calculateAutoQuotes({ ...baseInputs, collisionDeductible: 2000 });
-      const dedSaving    = cheapest.monthlyPremium - withHighDed[0].monthlyPremium;
+      const withHighDed = calculateAutoQuotes({ ...baseInputs, collisionDeductible: 2000 });
+      const dedSaving = cheapest.monthlyPremium - withHighDed[0].monthlyPremium;
       if (dedSaving > 0) {
         const [lo, hi] = savingsBand(dedSaving);
         tips.push({
@@ -885,23 +784,23 @@ router.post("/insurance/optimize-profile", (req, res): void => {
       });
     }
 
-  // ── HOME ───────────────────────────────────────────────────────────────────
+    // ── HOME ───────────────────────────────────────────────────────────────────
   } else if (insuranceType === "home") {
     const baseInputs: HomeInputs = {
-      region:       property.region       ?? inferRegion(locationStr),
+      region: property.region ?? inferRegion(locationStr),
       dwellingType: property.dwellingType ?? "detached",
       rebuildValue: property.rebuildValue ?? 500000,
-      homeAge:      property.homeAge      ?? 20,
-      heatingType:  property.heatingType  ?? "gas",
-      claimsCount:  0,
-      deductible:   1000,
-      addons:       [],
-      discounts:    [],
+      homeAge: property.homeAge ?? 20,
+      heatingType: property.heatingType ?? "gas",
+      claimsCount: 0,
+      deductible: 1000,
+      addons: [],
+      discounts: [],
     };
 
     const baseline = calculateHomeQuotes(baseInputs);
     const cheapest = baseline[0];
-    const median   = baseline[Math.floor(baseline.length / 2)];
+    const median = baseline[Math.floor(baseline.length / 2)];
 
     // Alarm — 5% discount
     const alarmSaving = Math.round(cheapest.monthlyPremium - calculateHomeQuotes({ ...baseInputs, discounts: ["alarm"] })[0].monthlyPremium);
@@ -998,30 +897,30 @@ router.post("/insurance/optimize-profile", (req, res): void => {
       });
     }
 
-  // ── RENTERS ────────────────────────────────────────────────────────────────
+    // ── RENTERS ────────────────────────────────────────────────────────────────
   } else if (insuranceType === "renters") {
     const baseInputs: RentersInputs = {
-      region:        property.region ?? inferRegion(locationStr),
+      region: property.region ?? inferRegion(locationStr),
       contentsValue: 35000,
-      claimsCount:   0,
-      deductible:    500,
-      addons:        [],
-      discounts:     [],
+      claimsCount: 0,
+      deductible: 500,
+      addons: [],
+      discounts: [],
     };
 
     const baseline = calculateRentersQuotes(baseInputs);
     const cheapest = baseline[0];
-    const median   = baseline[Math.floor(baseline.length / 2)];
+    const median = baseline[Math.floor(baseline.length / 2)];
 
     const rentersScenarios: Array<{
       id: string; discounts?: string[]; deductible?: number;
       title: string; description: string; category: string;
     }> = [
-      { id: "auto_bundle",   discounts: ["auto_bundle"],  title: "Bundle with auto insurance",        category: "bundling",   description: `Insuring your vehicle and rental unit with the same carrier saves 10% on your renters premium.` },
-      { id: "claims_free",   discounts: ["claims_free"],  title: "Apply your claims-free discount",   category: "lifestyle",  description: `If you haven't filed a renters claim in 3+ years, request the 7% claims-free discount at renewal.` },
-      { id: "annual_pay",    discounts: ["annual_pay"],   title: "Switch to annual payment",          category: "credit",     description: `Paying your full annual premium upfront avoids monthly billing fees and earns a 5% discount.` },
-      { id: "higher_deductible", deductible: 1000,        title: "Raise deductible to $1,000",        category: "deductible", description: `Increasing your deductible from $500 to $1,000 reduces your monthly cost.` },
-    ];
+        { id: "auto_bundle", discounts: ["auto_bundle"], title: "Bundle with auto insurance", category: "bundling", description: `Insuring your vehicle and rental unit with the same carrier saves 10% on your renters premium.` },
+        { id: "claims_free", discounts: ["claims_free"], title: "Apply your claims-free discount", category: "lifestyle", description: `If you haven't filed a renters claim in 3+ years, request the 7% claims-free discount at renewal.` },
+        { id: "annual_pay", discounts: ["annual_pay"], title: "Switch to annual payment", category: "credit", description: `Paying your full annual premium upfront avoids monthly billing fees and earns a 5% discount.` },
+        { id: "higher_deductible", deductible: 1000, title: "Raise deductible to $1,000", category: "deductible", description: `Increasing your deductible from $500 to $1,000 reduces your monthly cost.` },
+      ];
 
     for (const scenario of rentersScenarios) {
       const modified = calculateRentersQuotes({
@@ -1063,7 +962,7 @@ router.post("/insurance/optimize-profile", (req, res): void => {
       });
     }
 
-  // ── LIFE / HEALTH — engine-grounded static tips ────────────────────────────
+    // ── LIFE / HEALTH — engine-grounded static tips ────────────────────────────
   } else {
     tips.push(
       {
@@ -1109,6 +1008,104 @@ router.post("/insurance/optimize-profile", (req, res): void => {
     `up to $${totalMonthly}/month in verified savings — every number above is calculated, not estimated.`;
 
   res.json({ tips: finalTips, personalizedQuote });
+});
+
+// ─── Dec Page Extraction ─────────────────────────────────────────────────────
+
+const DEC_PAGE_EXTRACTION_PROMPT = `You are extracting structured data from a Canadian auto
+insurance declarations page. The user has uploaded their current policy document.
+
+Return ONLY a valid JSON object — no markdown, no explanation, no code fences.
+Use null for any field you cannot find with confidence.
+
+Required shape:
+{
+  "first_name":        string | null,
+  "last_name":         string | null,
+  "vehicle_make":      string | null,
+  "vehicle_model":     string | null,
+  "vehicle_year":      string | null,
+  "vin":               string | null,
+  "annual_mileage":    string | null,
+  "primary_use":       "commute" | "pleasure" | "business" | "farm" | null,
+  "deductible":        string | null,
+  "monthly_premium":   string | null,
+  "current_carrier":   string | null,
+  "location":          string | null
+}
+
+Rules:
+- vehicle_year: return as 4-digit string e.g. "2019"
+- annual_mileage: return digits only e.g. "15000"
+- deductible: return digits only e.g. "1000"
+- monthly_premium: return digits only, no $ or /mo e.g. "187"
+- primary_use: map "pleasure driving" → "pleasure", "to/from work" → "commute", etc.
+- location: prefer postal code if visible, otherwise city + province`;
+
+router.post("/ai/parse-dec-page", async (req, res): Promise<void> => {
+  const { imageData, mimeType } = req.body as {
+    imageData?: string;
+    mimeType?: string;
+  };
+
+  if (!imageData || !mimeType) {
+    res.status(400).json({ error: "validation_error", message: "imageData and mimeType are required" });
+    return;
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: "config_error", message: "ANTHROPIC_API_KEY not configured" });
+    return;
+  }
+
+  // Determine content block type — Anthropic supports image and document (PDF)
+  const isPdf = mimeType === "application/pdf";
+  const contentBlock = isPdf
+    ? { type: "document", source: { type: "base64", media_type: mimeType, data: imageData } }
+    : { type: "image", source: { type: "base64", media_type: mimeType, data: imageData } };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: [
+              contentBlock,
+              { type: "text", text: DEC_PAGE_EXTRACTION_PROMPT },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Anthropic API error:", errText);
+      res.status(502).json({ error: "ai_error", message: "Extraction failed" });
+      return;
+    }
+
+    const data = await response.json() as { content: Array<{ type: string; text?: string }> };
+    const rawText = data.content.find(b => b.type === "text")?.text ?? "";
+
+    // Strip markdown fences, validate shape, and normalize fields
+    const extracted = parseDecPageResponse(rawText);
+
+    res.json({ fields: extracted });
+  } catch (err) {
+    console.error("Dec page extraction error:", err);
+    res.status(500).json({ error: "ai_error", message: "Failed to extract dec page data" });
+  }
 });
 
 router.post("/ai/parse-answer", async (req, res): Promise<void> => {

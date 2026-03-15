@@ -231,6 +231,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiChatResponse"
 
+  /ai/parse-dec-page:
+    post:
+      operationId: parseDecPage
+      tags: [ai]
+      summary: Extract fields from an uploaded insurance declarations page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParseDecPageRequest"
+      responses:
+        "200":
+          description: Extracted form fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParseDecPageResponse"
+
 
 
 components:
@@ -863,3 +882,27 @@ components:
         - answer
         - contextCount
 
+    ParseDecPageRequest:
+      type: object
+      properties:
+        imageData:
+          type: string
+          description: Base64-encoded file content (image or PDF)
+        mimeType:
+          type: string
+          description: "MIME type: image/jpeg, image/png, image/heic, or application/pdf"
+      required:
+        - imageData
+        - mimeType
+
+    ParseDecPageResponse:
+      type: object
+      properties:
+        fields:
+          type: object
+          description: Extracted field values, null if not found
+          additionalProperties:
+            type: string
+            nullable: true
+      required:
+        - fields
