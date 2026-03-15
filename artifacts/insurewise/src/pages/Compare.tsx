@@ -20,6 +20,7 @@ export default function Compare() {
   const searchMutation = useSearchPolicies();
   const [policies, setPolicies] = useState<PolicyCard[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastSearchedUpdate, setLastSearchedUpdate] = useState<string | null>(null);
 
   // Local sliders for dynamic re-ranking
   const [priceWeight, setPriceWeight] = useState(33);
@@ -34,33 +35,38 @@ export default function Compare() {
   }, [userProfileId, setLocation]);
 
   useEffect(() => {
-    if (profile && !hasSearched && !searchMutation.isPending) {
-      setPriceWeight(profile.priorities.price);
-      setCoverageWeight(profile.priorities.coverage);
-      setRatingWeight(profile.priorities.rating);
-      setValidWeights({
-        price: profile.priorities.price,
-        coverage: profile.priorities.coverage,
-        rating: profile.priorities.rating
-      });
+    // If we have a profile and aren't currently searching, check if we need to search
+    // We search if we've never searched, OR if the profile recently updated (date mismatch)
+    if (profile && !searchMutation.isPending) {
+      if (!hasSearched || (profile.updatedAt as unknown as string) !== lastSearchedUpdate) {
+        setPriceWeight(profile.priorities.price);
+        setCoverageWeight(profile.priorities.coverage);
+        setRatingWeight(profile.priorities.rating);
+        setValidWeights({
+          price: profile.priorities.price,
+          coverage: profile.priorities.coverage,
+          rating: profile.priorities.rating
+        });
 
-      searchMutation.mutate({
-        data: {
-          userProfileId: profile.id,
-          insuranceType: profile.insuranceType,
-          priorities: profile.priorities,
-          requirements: profile.requirements,
-          budgetMonthly: profile.budgetMonthly,
-          location: profile.location
-        }
-      }, {
-        onSuccess: (res) => {
-          setPolicies(res.policies);
-          setHasSearched(true);
-        }
-      });
+        searchMutation.mutate({
+          data: {
+            userProfileId: profile.id,
+            insuranceType: profile.insuranceType,
+            priorities: profile.priorities,
+            requirements: profile.requirements,
+            budgetMonthly: profile.budgetMonthly,
+            location: profile.location
+          }
+        }, {
+          onSuccess: (res) => {
+            setPolicies(res.policies);
+            setHasSearched(true);
+            setLastSearchedUpdate(profile.updatedAt as unknown as string);
+          }
+        });
+      }
     }
-  }, [profile, hasSearched, searchMutation.isPending, userProfileId]);
+  }, [profile, hasSearched, searchMutation.isPending, userProfileId, lastSearchedUpdate]);
 
   const currentTotal = priceWeight + coverageWeight + ratingWeight;
   const isWeightValid = currentTotal === 100;
