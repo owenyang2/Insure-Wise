@@ -1,0 +1,17 @@
+{
+  "user_profile": {
+    "business_type": "bar",
+    "location": "Toronto, ON",
+    "employees": 12,
+    "annual_revenue": "$800,000",
+    "alcohol_sales": true,
+    "budget_max": 400,
+    "coverage_needs": ["General Liability", "Liquor Liability", "Property Damage"],
+    "priority_weights": {
+      "coverage": 40,
+      "price": 30,
+      "rating": 20,
+      "gap_penalty": 10
+    }
+  }
+}

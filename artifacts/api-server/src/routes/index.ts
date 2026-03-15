@@ -3,6 +3,7 @@ import healthRouter from "./health";
 import usersRouter from "./users";
 import insuranceRouter from "./insurance";
 import aiRouter from "./ai";
+import onboardingValidationRouter from "./onboarding-validation";
 
 const router: IRouter = Router();
 
@@ -10,5 +11,6 @@ router.use(healthRouter);
 router.use(usersRouter);
 router.use(insuranceRouter);
 router.use(aiRouter);
+router.use(onboardingValidationRouter);
 
 export default router;

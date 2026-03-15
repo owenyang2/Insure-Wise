@@ -1,0 +1,204 @@
+{
+  "ranked": [
+    {
+      "carrier_id": "coterie_commercial",
+      "carrier_name": "Coterie Insurance",
+      "monthly_price": 265,
+      "plan_id": "econ-001",
+      "rating": 4.1,
+      "deductible": 1000,
+      "apply_url": "https://economical.com/apply",
+      "covered": [],
+      "excluded": [],
+      "liability_limit": null,
+      "deductible_min": null,
+      "deductible_max": null,
+      "waiting_period": null,
+      "claim_process": null,
+      "raw_exclusion_text": null,
+      "last_pdf_updated": null,
+      "has_policy_detail": false,
+      "_scores": {
+        "coverage_score": 0.5,
+        "price_score": 1,
+        "rating_score": 0.5499999999999998,
+        "gap_penalty": 0.12
+      },
+      "coverage_score": 0.5,
+      "final_score": 0.598,
+      "score_breakdown": {
+        "coverage_score": 0.5,
+        "price_score": 1,
+        "rating_score": 0.55,
+        "gap_penalty": 0.12
+      },
+      "gap_flags": [
+        "Score unavailable — review manually"
+      ],
+      "risk_warnings": [],
+      "ai_explanation": "Automated scoring temporarily unavailable for this plan.",
+      "rank": 1
+    },
+    {
+      "carrier_id": "coterie_commercial",
+      "carrier_name": "Coterie Insurance",
+      "monthly_price": 292,
+      "plan_id": "aviva-001",
+      "rating": 4.4,
+      "deductible": 1500,
+      "apply_url": "https://aviva.ca/apply",
+      "covered": [],
+      "excluded": [],
+      "liability_limit": null,
+      "deductible_min": null,
+      "deductible_max": null,
+      "waiting_period": null,
+      "claim_process": null,
+      "raw_exclusion_text": null,
+      "last_pdf_updated": null,
+      "has_policy_detail": false,
+      "_scores": {
+        "coverage_score": 0.5,
+        "price_score": 0.7545454545454545,
+        "rating_score": 0.7000000000000002,
+        "gap_penalty": 0.12
+      },
+      "coverage_score": 0.5,
+      "final_score": 0.5543636363636364,
+      "score_breakdown": {
+        "coverage_score": 0.5,
+        "price_score": 0.75,
+        "rating_score": 0.7,
+        "gap_penalty": 0.12
+      },
+      "gap_flags": [
+        "Score unavailable — review manually"
+      ],
+      "risk_warnings": [],
+      "ai_explanation": "Automated scoring temporarily unavailable for this plan.",
+      "rank": 2
+    },
+    {
+      "carrier_id": "coterie_commercial",
+      "carrier_name": "Coterie Insurance",
+      "monthly_price": 310,
+      "plan_id": "wawa-001",
+      "rating": 4.3,
+      "deductible": 1500,
+      "apply_url": "https://wawanesa.com/apply",
+      "covered": [],
+      "excluded": [],
+      "liability_limit": null,
+      "deductible_min": null,
+      "deductible_max": null,
+      "waiting_period": null,
+      "claim_process": null,
+      "raw_exclusion_text": null,
+      "last_pdf_updated": null,
+      "has_policy_detail": false,
+      "_scores": {
+        "coverage_score": 0.5,
+        "price_score": 0.5909090909090908,
+        "rating_score": 0.6499999999999999,
+        "gap_penalty": 0.12
+      },
+      "coverage_score": 0.5,
+      "final_score": 0.4952727272727273,
+      "score_breakdown": {
+        "coverage_score": 0.5,
+        "price_score": 0.59,
+        "rating_score": 0.65,
+        "gap_penalty": 0.12
+      },
+      "gap_flags": [
+        "Score unavailable — review manually"
+      ],
+      "risk_warnings": [],
+      "ai_explanation": "Automated scoring temporarily unavailable for this plan.",
+      "rank": 3
+    },
+    {
+      "carrier_id": "coterie_commercial",
+      "carrier_name": "Coterie Insurance",
+      "monthly_price": 338,
+      "plan_id": "intact-001",
+      "rating": 4.7,
+      "deductible": 2000,
+      "apply_url": "https://intact.ca/apply",
+      "covered": [],
+      "excluded": [],
+      "liability_limit": null,
+      "deductible_min": null,
+      "deductible_max": null,
+      "waiting_period": null,
+      "claim_process": null,
+      "raw_exclusion_text": null,
+      "last_pdf_updated": null,
+      "has_policy_detail": false,
+      "_scores": {
+        "coverage_score": 0.5,
+        "price_score": 0.3363636363636363,
+        "rating_score": 0.8500000000000001,
+        "gap_penalty": 0.12
+      },
+      "coverage_score": 0.5,
+      "final_score": 0.45890909090909093,
+      "score_breakdown": {
+        "coverage_score": 0.5,
+        "price_score": 0.34,
+        "rating_score": 0.85,
+        "gap_penalty": 0.12
+      },
+      "gap_flags": [
+        "Score unavailable — review manually"
+      ],
+      "risk_warnings": [],
+      "ai_explanation": "Automated scoring temporarily unavailable for this plan.",
+      "rank": 4
+    },
+    {
+      "carrier_id": "coterie_commercial",
+      "carrier_name": "Coterie Insurance",
+      "monthly_price": 375,
+      "plan_id": "north-001",
+      "rating": 4.6,
+      "deductible": 2500,
+      "apply_url": "https://northbridge.ca/apply",
+      "covered": [],
+      "excluded": [],
+      "liability_limit": null,
+      "deductible_min": null,
+      "deductible_max": null,
+      "waiting_period": null,
+      "claim_process": null,
+      "raw_exclusion_text": null,
+      "last_pdf_updated": null,
+      "has_policy_detail": false,
+      "_scores": {
+        "coverage_score": 0.5,
+        "price_score": 0,
+        "rating_score": 0.7999999999999998,
+        "gap_penalty": 0.12
+      },
+      "coverage_score": 0.5,
+      "final_score": 0.348,
+      "score_breakdown": {
+        "coverage_score": 0.5,
+        "price_score": 0,
+        "rating_score": 0.8,
+        "gap_penalty": 0.12
+      },
+      "gap_flags": [
+        "Liability limit not specified"
+      ],
+      "risk_warnings": [
+        "Liability limit may be insufficient for a restaurant in Chicago"
+      ],
+      "ai_explanation": "This plan includes both General Liability and Liquor Liability, meeting half of the user's required coverages. However, the liability limit is not specified, and the deductible is relatively high at $2500. The liability limit may be insufficient for a restaurant in Chicago, especially considering the potential risks associated with food service and possible alcohol sales.",
+      "rank": 5
+    }
+  ],
+  "warning": null,
+  "duration_ms": 13597,
+  "mode": "new_search"
+}

@@ -16,11 +16,11 @@ export default function Compare() {
       queryKey: ["getUserProfile"]
     }
   });
-  
+
   const searchMutation = useSearchPolicies();
   const [policies, setPolicies] = useState<PolicyCard[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  
+
   // Local sliders for dynamic re-ranking
   const [priceWeight, setPriceWeight] = useState(33);
   const [coverageWeight, setCoverageWeight] = useState(33);
@@ -58,9 +58,10 @@ export default function Compare() {
 
   // Client-side re-ranking based on sliders
   const rankedPolicies = useMemo(() => {
+    const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
     return [...policies].sort((a, b) => {
-      const scoreA = (a.priceScore * priceWeight + a.coverageScore * coverageWeight + a.ratingScore * ratingWeight) / 100;
-      const scoreB = (b.priceScore * priceWeight + b.coverageScore * coverageWeight + b.ratingScore * ratingWeight) / 100;
+      const scoreA = (a.priceScore * priceWeight + a.coverageScore * coverageWeight + a.ratingScore * ratingWeight) / totalWeight;
+      const scoreB = (b.priceScore * priceWeight + b.coverageScore * coverageWeight + b.ratingScore * ratingWeight) / totalWeight;
       return scoreB - scoreA;
     });
   }, [policies, priceWeight, coverageWeight, ratingWeight]);
@@ -79,10 +80,10 @@ export default function Compare() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          
+
           {/* Sidebar / Filters */}
           <aside className="w-full md:w-80 flex-shrink-0">
             <div className="bg-white rounded-2xl p-6 border border-border shadow-sm sticky top-24">
@@ -100,9 +101,9 @@ export default function Compare() {
                     <label className="text-sm font-medium text-foreground">Price</label>
                     <span className="text-sm font-bold text-primary">{priceWeight}%</span>
                   </div>
-                  <input 
-                    type="range" min="0" max="100" 
-                    value={priceWeight} 
+                  <input
+                    type="range" min="0" max="100"
+                    value={priceWeight}
                     onChange={(e) => setPriceWeight(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
@@ -112,9 +113,9 @@ export default function Compare() {
                     <label className="text-sm font-medium text-foreground">Coverage</label>
                     <span className="text-sm font-bold text-primary">{coverageWeight}%</span>
                   </div>
-                  <input 
-                    type="range" min="0" max="100" 
-                    value={coverageWeight} 
+                  <input
+                    type="range" min="0" max="100"
+                    value={coverageWeight}
                     onChange={(e) => setCoverageWeight(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
@@ -124,9 +125,9 @@ export default function Compare() {
                     <label className="text-sm font-medium text-foreground">Rating</label>
                     <span className="text-sm font-bold text-primary">{ratingWeight}%</span>
                   </div>
-                  <input 
-                    type="range" min="0" max="100" 
-                    value={ratingWeight} 
+                  <input
+                    type="range" min="0" max="100"
+                    value={ratingWeight}
                     onChange={(e) => setRatingWeight(Number(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
@@ -151,8 +152,9 @@ export default function Compare() {
             ) : (
               <div className="space-y-6">
                 {rankedPolicies.map((policy, idx) => {
-                  const score = Math.round((policy.priceScore * priceWeight + policy.coverageScore * coverageWeight + policy.ratingScore * ratingWeight) / 100);
-                  
+                  const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
+                  const score = Math.min(100, Math.round((policy.priceScore * priceWeight + policy.coverageScore * coverageWeight + policy.ratingScore * ratingWeight) / totalWeight));
+
                   return (
                     <div key={policy.id} className="bg-white rounded-2xl border border-border shadow-md shadow-black/5 hover:shadow-xl hover:border-primary/30 transition-all duration-300 overflow-hidden">
                       {idx === 0 && (
@@ -160,7 +162,7 @@ export default function Compare() {
                           <span className="text-xs font-bold text-white uppercase tracking-wider">Best Overall Match</span>
                         </div>
                       )}
-                      
+
                       <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:items-center">
                         {/* Insurer Info */}
                         <div className="flex-1">
@@ -173,7 +175,7 @@ export default function Compare() {
                               <p className="text-sm text-muted-foreground">{policy.planName}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-2 mt-4">
                             {policy.gapCount === 0 ? (
                               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-sm font-medium">
@@ -196,16 +198,16 @@ export default function Compare() {
                             <p className="text-sm text-muted-foreground mb-1">Monthly Premium</p>
                             <p className="text-4xl font-bold text-foreground">${policy.monthlyPremium}</p>
                           </div>
-                          
+
                           <div className="flex flex-col items-center">
                             <div className="relative w-16 h-16 flex items-center justify-center">
                               <svg className="w-full h-full transform -rotate-90">
                                 <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
-                                <circle 
-                                  cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                                  strokeDasharray={2 * Math.PI * 28} 
+                                <circle
+                                  cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent"
+                                  strokeDasharray={2 * Math.PI * 28}
                                   strokeDashoffset={2 * Math.PI * 28 * (1 - score / 100)}
-                                  className={`${score > 85 ? 'text-emerald-500' : score > 70 ? 'text-amber-500' : 'text-red-500'} transition-all duration-1000`} 
+                                  className={`${score > 85 ? 'text-emerald-500' : score > 70 ? 'text-amber-500' : 'text-red-500'} transition-all duration-1000`}
                                 />
                               </svg>
                               <span className="absolute text-lg font-bold">{score}%</span>
@@ -216,7 +218,7 @@ export default function Compare() {
 
                         {/* Actions */}
                         <div className="md:border-l border-border md:pl-8 flex md:flex-col gap-3 justify-center">
-                          <Link 
+                          <Link
                             href={`/policy/${policy.id}`}
                             className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-primary/10 text-primary font-semibold text-center hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
                           >

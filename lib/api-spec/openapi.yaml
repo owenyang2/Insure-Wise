@@ -155,6 +155,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplicationConfirmation"
 
+  /ai/ask-expert:
+    post:
+      operationId: askExpert
+      tags: [ai]
+      summary: Query the Moorcheh semantic memory expert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskExpertBody"
+      responses:
+        "200":
+          description: Expert answer successfully generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskExpertResponse"
+
+  /ai/parse-answer:
+    post:
+      operationId: aiParseAnswer
+      tags: [ai]
+      summary: Parse unstructured user answers during onboarding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiParseAnswerRequest"
+      responses:
+        "200":
+          description: Answer successfully parsed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiParseAnswerResponse"
+
   /ai/chat:
     post:
       operationId: aiChat
@@ -173,6 +211,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiChatResponse"
+
+
 
 components:
   schemas:
@@ -710,3 +750,64 @@ components:
       required:
         - message
         - isComplete
+
+    AiParseAnswerRequest:
+      type: object
+      properties:
+        questionId:
+          type: string
+        questionText:
+          type: string
+        answer:
+          type: string
+      required:
+        - questionId
+        - questionText
+        - answer
+
+    AiParseAnswerResponse:
+      type: object
+      properties:
+        parsedValue:
+          type: string
+          nullable: true
+        extractedEntities:
+          type: object
+          additionalProperties: {}
+      required:
+        - parsedValue
+        - extractedEntities
+
+    AskExpertBody:
+      type: object
+      properties:
+        query:
+          type: string
+        chatHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum: [user, assistant, system]
+              content:
+                type: string
+            required:
+              - role
+              - content
+      required:
+        - query
+        - chatHistory
+
+    AskExpertResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        contextCount:
+          type: number
+      required:
+        - answer
+        - contextCount
+

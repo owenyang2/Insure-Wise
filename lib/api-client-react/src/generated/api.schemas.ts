@@ -317,3 +317,40 @@ export interface AiChatResponse {
   isComplete: boolean;
   nextQuestion?: string;
 }
+
+export interface AiParseAnswerRequest {
+  questionId: string;
+  questionText: string;
+  answer: string;
+}
+
+export type AiParseAnswerResponseExtractedEntities = { [key: string]: unknown };
+
+export interface AiParseAnswerResponse {
+  parsedValue: string | null;
+  extractedEntities: AiParseAnswerResponseExtractedEntities;
+}
+
+export type AskExpertBodyChatHistoryItemRole =
+  (typeof AskExpertBodyChatHistoryItemRole)[keyof typeof AskExpertBodyChatHistoryItemRole];
+
+export const AskExpertBodyChatHistoryItemRole = {
+  user: "user",
+  assistant: "assistant",
+  system: "system",
+} as const;
+
+export type AskExpertBodyChatHistoryItem = {
+  role: AskExpertBodyChatHistoryItemRole;
+  content: string;
+};
+
+export interface AskExpertBody {
+  query: string;
+  chatHistory: AskExpertBodyChatHistoryItem[];
+}
+
+export interface AskExpertResponse {
+  answer: string;
+  contextCount: number;
+}
