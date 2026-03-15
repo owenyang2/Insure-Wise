@@ -410,9 +410,9 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
   type Draft = QuoteResult & { coverageLoadingRaw: number; carrierRating: number };
 
   const drafts: Draft[] = [];
-  const DEDUCTIBLE_OPTIONS = [500, 1000, 1500, 2000] as const;
+  const deductible = inputs.collisionDeductible ?? 1000;
 
-  AUTO_CARRIERS.forEach((carrier, idx) => {
+  AUTO_CARRIERS.forEach((carrier) => {
     const territory  = getCarrierTerritoryFactor(carrier.id, postalPrefix);
     const make       = getCarrierMakeFactor(carrier.id, inputs.vehicleMake.toLowerCase());
     const type       = TYPE_FACTORS[inputs.vehicleType]  ?? 1.0;
@@ -424,13 +424,10 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
     const km         = getBandFactor(KM_BANDS,       inputs.annualKm,          "maxKm");
     const use        = USE_FACTORS[inputs.primaryUse] ?? 1.0;
 
-    // Vary deductible by carrier so comparison shows real differences (not all $1000)
-    const deductible = DEDUCTIBLE_OPTIONS[idx % DEDUCTIBLE_OPTIONS.length];
-
     let coverageLoading = 1.0;
     coverageLoading += LIABILITY_LOADING[String(inputs.liability)] ?? 0;
     coverageLoading += COLLISION_DED_LOADING[String(deductible)] ?? 0;
-    coverageLoading += COMP_DED_LOADING[String(deductible)] ?? 0;
+    coverageLoading += COMP_DED_LOADING[String(inputs.comprehensiveDeductible ?? deductible)] ?? 0;
     for (const addon of (inputs.addons ?? [])) {
       coverageLoading += ADDON_LOADING[addon] ?? 0;
     }
@@ -505,13 +502,12 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
-const HOME_DEDUCTIBLE_OPTIONS = [500, 1000, 2000] as const;
-
 export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
   type Draft = QuoteResult & { coverageLoadingRaw: number; carrierRating: number };
   const drafts: Draft[] = [];
+  const deductible = inputs.deductible ?? 1000;
 
-  HOME_CARRIERS.forEach((carrier, idx) => {
+  HOME_CARRIERS.forEach((carrier) => {
     const baseTerritoryMid = HOME_TERRITORY_MIDS[inputs.region] ?? 0.99;
     const territoryOffset  = ((carrier.id.charCodeAt(0) % 9) - 4) * 0.01;
     const territory        = baseTerritoryMid + territoryOffset;
@@ -521,8 +517,6 @@ export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
     const age       = getBandFactor(HOME_AGE_BANDS, inputs.homeAge,      "maxAge");
     const heating   = HEATING_FACTORS[inputs.heatingType]   ?? 1.0;
     const claims    = HOME_CLAIMS_FACTORS[String(Math.min(inputs.claimsCount, 3))] ?? 1.0;
-
-    const deductible = HOME_DEDUCTIBLE_OPTIONS[idx % HOME_DEDUCTIBLE_OPTIONS.length];
 
     let coverageLoading = 1.0;
     coverageLoading += HOME_DED_LOADING[String(deductible)] ?? 0;
