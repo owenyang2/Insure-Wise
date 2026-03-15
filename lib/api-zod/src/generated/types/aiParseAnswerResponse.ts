@@ -9,5 +9,5 @@ import type { AiParseAnswerResponseExtractedEntities } from "./aiParseAnswerResp
 
 export interface AiParseAnswerResponse {
   parsedValue: string | null;
-  extractedEntities?: AiParseAnswerResponseExtractedEntities;
+  extractedEntities: AiParseAnswerResponseExtractedEntities;
 }

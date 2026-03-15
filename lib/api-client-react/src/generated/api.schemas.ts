@@ -328,7 +328,7 @@ export type AiParseAnswerResponseExtractedEntities = { [key: string]: unknown };
 
 export interface AiParseAnswerResponse {
   parsedValue: string | null;
-  extractedEntities?: AiParseAnswerResponseExtractedEntities;
+  extractedEntities: AiParseAnswerResponseExtractedEntities;
 }
 
 export type AskExpertBodyChatHistoryItemRole =

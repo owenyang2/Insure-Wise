@@ -212,6 +212,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiChatResponse"
 
+
+
 components:
   schemas:
     HealthStatus:
@@ -774,6 +776,7 @@ components:
           additionalProperties: {}
       required:
         - parsedValue
+        - extractedEntities
 
     AskExpertBody:
       type: object

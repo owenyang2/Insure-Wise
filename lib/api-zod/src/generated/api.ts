@@ -387,7 +387,7 @@ export const AiParseAnswerBody = zod.object({
 
 export const AiParseAnswerResponse = zod.object({
   parsedValue: zod.string().nullable(),
-  extractedEntities: zod.record(zod.string(), zod.unknown()).optional(),
+  extractedEntities: zod.record(zod.string(), zod.unknown()),
 });
 
 /**
