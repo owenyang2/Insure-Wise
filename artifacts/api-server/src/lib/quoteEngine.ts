@@ -606,6 +606,8 @@ export function calculateRentersQuotes(inputs: RentersInputs): QuoteResult[] {
     for (const addon of (inputs.addons ?? [])) {
       coverageLoading += RENTERS_ADDON_LOADING[addon] ?? 0;
     }
+    const rentersCoverageTweak = 0.02 * ((carrier.id.charCodeAt(0) + (carrier.id.length > 1 ? carrier.id.charCodeAt(1) : 0)) % 7);
+    coverageLoading += rentersCoverageTweak;
 
     let discountTotal = 0;
     for (const d of (inputs.discounts ?? [])) {
@@ -684,7 +686,8 @@ export function calculateLifeQuotes(inputs: LifeInputs): QuoteResult[] {
     const annual  = Math.round(baseRate * age * gender * smoking * health * coverageFactor * coverageUnits);
     const monthly = Math.round(annual / 12);
 
-    const coverageLoading = age * gender * smoking * health * coverageFactor;
+    const carrierLifeTweak = 0.02 * ((carrier.id.charCodeAt(0) + (carrier.id.length > 1 ? carrier.id.charCodeAt(1) : 0)) % 7);
+    const coverageLoading = age * gender * smoking * health * coverageFactor + carrierLifeTweak;
 
     const breakdown = {
       baseRate,
@@ -757,7 +760,8 @@ export function calculateHealthQuotes(inputs: HealthInputs): QuoteResult[] {
     const monthly = Math.round(totalMonthly);
     const annual  = monthly * 12;
 
-    const coverageLoading = age * family * preEx * tier * province * ded;
+    const carrierHealthTweak = 0.02 * ((carrier.id.charCodeAt(0) + (carrier.id.length > 1 ? carrier.id.charCodeAt(1) : 0)) % 7);
+    const coverageLoading = age * family * preEx * tier * province * ded + carrierHealthTweak;
 
     const breakdown = {
       baseRate: inputs.products.reduce((s, p) => s + (rates[p] ?? 0), 0),
