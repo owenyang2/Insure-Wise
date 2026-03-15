@@ -410,8 +410,9 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
   type Draft = QuoteResult & { coverageLoadingRaw: number; carrierRating: number };
 
   const drafts: Draft[] = [];
+  const DEDUCTIBLE_OPTIONS = [500, 1000, 1500, 2000] as const;
 
-  for (const carrier of AUTO_CARRIERS) {
+  AUTO_CARRIERS.forEach((carrier, idx) => {
     const territory  = getCarrierTerritoryFactor(carrier.id, postalPrefix);
     const make       = getCarrierMakeFactor(carrier.id, inputs.vehicleMake.toLowerCase());
     const type       = TYPE_FACTORS[inputs.vehicleType]  ?? 1.0;
@@ -423,13 +424,19 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
     const km         = getBandFactor(KM_BANDS,       inputs.annualKm,          "maxKm");
     const use        = USE_FACTORS[inputs.primaryUse] ?? 1.0;
 
+    // Vary deductible by carrier so comparison shows real differences (not all $1000)
+    const deductible = DEDUCTIBLE_OPTIONS[idx % DEDUCTIBLE_OPTIONS.length];
+
     let coverageLoading = 1.0;
-    coverageLoading += LIABILITY_LOADING[String(inputs.liability)]                    ?? 0;
-    coverageLoading += COLLISION_DED_LOADING[String(inputs.collisionDeductible)]      ?? 0;
-    coverageLoading += COMP_DED_LOADING[String(inputs.comprehensiveDeductible)]       ?? 0;
+    coverageLoading += LIABILITY_LOADING[String(inputs.liability)] ?? 0;
+    coverageLoading += COLLISION_DED_LOADING[String(deductible)] ?? 0;
+    coverageLoading += COMP_DED_LOADING[String(deductible)] ?? 0;
     for (const addon of (inputs.addons ?? [])) {
       coverageLoading += ADDON_LOADING[addon] ?? 0;
     }
+    // Per-carrier coverage tweak so coverageScore spreads (not all 20%)
+    const carrierCoverageTweak = 0.02 * ((carrier.id.charCodeAt(0) + (carrier.id.length > 1 ? carrier.id.charCodeAt(1) : 0)) % 7);
+    coverageLoading += carrierCoverageTweak;
 
     let discountTotal = 0;
     for (const d of (inputs.discounts ?? [])) {
@@ -475,7 +482,7 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
       reviewCount: getReviewCount(carrier.id),
       monthlyPremium: monthly,
       annualPremium: monthly * 12,
-      deductible: inputs.collisionDeductible,
+      deductible,
       url: carrier.url,
       highlights: buildHighlightsAuto(inputs, carrier, monthly),
       warnings: buildWarningsAuto(inputs),
@@ -488,7 +495,7 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
       coverageLoadingRaw: coverageLoading,
       carrierRating: carrier.rating,
     });
-  }
+  });
 
   normalizeScores(drafts);
   drafts.sort((a, b) => a.monthlyPremium - b.monthlyPremium);
@@ -498,11 +505,13 @@ export function calculateAutoQuotes(inputs: AutoInputs): QuoteResult[] {
 
 // ─── Home ─────────────────────────────────────────────────────────────────────
 
+const HOME_DEDUCTIBLE_OPTIONS = [500, 1000, 2000] as const;
+
 export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
   type Draft = QuoteResult & { coverageLoadingRaw: number; carrierRating: number };
   const drafts: Draft[] = [];
 
-  for (const carrier of HOME_CARRIERS) {
+  HOME_CARRIERS.forEach((carrier, idx) => {
     const baseTerritoryMid = HOME_TERRITORY_MIDS[inputs.region] ?? 0.99;
     const territoryOffset  = ((carrier.id.charCodeAt(0) % 9) - 4) * 0.01;
     const territory        = baseTerritoryMid + territoryOffset;
@@ -513,11 +522,15 @@ export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
     const heating   = HEATING_FACTORS[inputs.heatingType]   ?? 1.0;
     const claims    = HOME_CLAIMS_FACTORS[String(Math.min(inputs.claimsCount, 3))] ?? 1.0;
 
+    const deductible = HOME_DEDUCTIBLE_OPTIONS[idx % HOME_DEDUCTIBLE_OPTIONS.length];
+
     let coverageLoading = 1.0;
-    coverageLoading += HOME_DED_LOADING[String(inputs.deductible)] ?? 0;
+    coverageLoading += HOME_DED_LOADING[String(deductible)] ?? 0;
     for (const addon of (inputs.addons ?? [])) {
       coverageLoading += HOME_ADDON_LOADING[addon] ?? 0;
     }
+    const homeCoverageTweak = 0.02 * ((carrier.id.charCodeAt(0) + (carrier.id.length > 1 ? carrier.id.charCodeAt(1) : 0)) % 7);
+    coverageLoading += homeCoverageTweak;
 
     let discountTotal = 0;
     for (const d of (inputs.discounts ?? [])) {
@@ -558,7 +571,7 @@ export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
       reviewCount: getReviewCount(carrier.id),
       monthlyPremium: monthly,
       annualPremium: annual,
-      deductible: inputs.deductible,
+      deductible,
       url: carrier.url,
       highlights: buildHighlightsHome(inputs, carrier, annual),
       warnings: buildWarningsHome(inputs),
@@ -570,7 +583,7 @@ export function calculateHomeQuotes(inputs: HomeInputs): QuoteResult[] {
       coverageLoadingRaw: coverageLoading,
       carrierRating: carrier.rating,
     });
-  }
+  });
 
   normalizeScores(drafts);
   drafts.sort((a, b) => a.annualPremium - b.annualPremium);

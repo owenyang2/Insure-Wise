@@ -14,7 +14,7 @@ export const AUTO_CARRIERS = [
   { id: "PB",    name: "Pembridge Insurance",  type: "broker" as const, rating: 3.9, tele: false, url: "https://www.pembridge.com/",                                                       baseMonthly: 860  },
   { id: "MN",    name: "Manulife",             type: "direct" as const, rating: 4.0, tele: true,  url: "https://www.manulife.ca/personal/insurance/auto-and-property/auto-insurance.html", baseMonthly: 865  },
   { id: "EC",    name: "Economical Insurance", type: "broker" as const, rating: 3.9, tele: true,  url: "https://www.economical.com/en/personal/auto",                                      baseMonthly: 870  },
-  { id: "CA",    name: "CAA Insurance",        type: "direct" as const, rating: 4.2, tele: false, url: "https://www.caasco.com/insurance/auto",                                            baseMonthly: 875  },
+  { id: "CA",    name: "CAA Insurance",        type: "direct" as const, rating: 4.2, tele: false, url: "https://car-insurance.caasco.com/auto/intro",                                            baseMonthly: 875  },
   { id: "NB",    name: "Northbridge",          type: "broker" as const, rating: 3.7, tele: false, url: "https://www.northbridgeinsurance.ca/",                                             baseMonthly: 875  },
   { id: "RS",    name: "RSA Canada",           type: "broker" as const, rating: 3.8, tele: false, url: "https://www.rsagroup.ca/",                                                         baseMonthly: 880  },
   { id: "IN",    name: "Intact Insurance",     type: "broker" as const, rating: 4.2, tele: true,  url: "https://www.intact.net/en/personal-insurance/car-insurance/",                      baseMonthly: 885  },

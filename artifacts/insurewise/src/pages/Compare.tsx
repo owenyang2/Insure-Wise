@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, AlertTriangle, Check, SlidersHorizontal, ChevronRight, SearchX } from "lucide-react";
+import { Shield, AlertTriangle, Check, SlidersHorizontal, ChevronRight, SearchX, ExternalLink, Star, Layers } from "lucide-react";
 import { useSearchPolicies, useGetUserProfile } from "@workspace/api-client-react";
 import type { PolicyCard } from "@workspace/api-client-react";
 import { useStore } from "@/store/use-store";
@@ -56,15 +56,23 @@ export default function Compare() {
     }
   }, [profile, hasSearched, searchMutation.isPending]);
 
-  // Client-side re-ranking based on sliders
+  // API returns priceScore, coverageScore, ratingScore in 0–1 range; weights are 0–100
+  const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
+
+  // Client-side re-ranking based on sliders (higher weighted score = better)
   const rankedPolicies = useMemo(() => {
-    const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
     return [...policies].sort((a, b) => {
       const scoreA = (a.priceScore * priceWeight + a.coverageScore * coverageWeight + a.ratingScore * ratingWeight) / totalWeight;
       const scoreB = (b.priceScore * priceWeight + b.coverageScore * coverageWeight + b.ratingScore * ratingWeight) / totalWeight;
       return scoreB - scoreA;
     });
-  }, [policies, priceWeight, coverageWeight, ratingWeight]);
+  }, [policies, priceWeight, coverageWeight, ratingWeight, totalWeight]);
+
+  /** Weighted match score 0–100 for display (API scores are 0–1) */
+  const getDisplayScore = (policy: PolicyCard) => {
+    const raw = (policy.priceScore * priceWeight + policy.coverageScore * coverageWeight + policy.ratingScore * ratingWeight) / totalWeight;
+    return Math.min(100, Math.round(raw * 100));
+  };
 
   if (isProfileLoading || searchMutation.isPending || !hasSearched) {
     return (
@@ -152,8 +160,7 @@ export default function Compare() {
             ) : (
               <div className="space-y-6">
                 {rankedPolicies.map((policy, idx) => {
-                  const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
-                  const score = Math.min(100, Math.round((policy.priceScore * priceWeight + policy.coverageScore * coverageWeight + policy.ratingScore * ratingWeight) / totalWeight));
+                  const score = getDisplayScore(policy);
 
                   return (
                     <div key={policy.id} className="bg-white rounded-2xl border border-border shadow-md shadow-black/5 hover:shadow-xl hover:border-primary/30 transition-all duration-300 overflow-hidden">
@@ -186,10 +193,33 @@ export default function Compare() {
                                 <AlertTriangle className="w-4 h-4" /> {policy.gapCount} Coverage Gaps
                               </span>
                             )}
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm font-medium">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm font-medium" title="Amount you pay out of pocket before insurance pays. Lower deductible usually means higher premium.">
                               <Shield className="w-4 h-4" /> ${policy.deductible} Deductible
                             </span>
                           </div>
+
+                          {/* Rating & Coverage — so users see relative ratings */}
+                          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1.5" title="Insurer rating (out of 5)">
+                              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                              <span className="font-semibold text-foreground">{policy.overallRating.toFixed(1)}</span>
+                              <span className="text-muted-foreground">/ 5</span>
+                              {policy.reviewCount > 0 && (
+                                <span className="text-muted-foreground">({policy.reviewCount.toLocaleString()} reviews)</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5" title="Relative coverage strength vs other quotes (liability, deductibles, add-ons). Higher = stronger coverage options for this quote.">
+                              <Layers className="w-4 h-4 text-primary" />
+                              <span className="font-semibold text-foreground">{Math.round((policy.coverageScore ?? 0) * 100)}%</span>
+                              <span className="text-muted-foreground">coverage</span>
+                            </div>
+                          </div>
+                          {policy.coverageSummary && policy.coverageSummary.length > 0 && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              {policy.coverageSummary.slice(0, 5).map(c => c.name).join(" · ")}
+                              {policy.coverageSummary.length > 5 ? " …" : ""}
+                            </p>
+                          )}
                         </div>
 
                         {/* Price & Score */}
@@ -218,6 +248,17 @@ export default function Compare() {
 
                         {/* Actions */}
                         <div className="md:border-l border-border md:pl-8 flex md:flex-col gap-3 justify-center">
+                          {"url" in policy && typeof (policy as PolicyCard & { url?: string }).url === "string" && (
+                            <a
+                              href={(policy as PolicyCard & { url: string }).url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Visit {policy.insurerName}
+                            </a>
+                          )}
                           <Link
                             href={`/policy/${policy.id}`}
                             className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-primary/10 text-primary font-semibold text-center hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
