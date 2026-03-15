@@ -1,0 +1,2 @@
+moorcheh-sdk
+python-dotenv

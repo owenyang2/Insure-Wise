@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
+import { openai, AI_MODEL } from "../lib/ai.js";
 import { schemas } from "@workspace/api-zod";
 const { AiChatBody } = schemas;
 

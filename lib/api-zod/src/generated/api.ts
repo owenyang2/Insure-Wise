@@ -376,6 +376,38 @@ export const SubmitApplicationResponse = zod.object({
 });
 
 /**
+ * @summary Query the Moorcheh semantic memory expert
+ */
+export const AskExpertBody = zod.object({
+  query: zod.string(),
+  chatHistory: zod.array(
+    zod.object({
+      role: zod.enum(["user", "assistant", "system"]),
+      content: zod.string(),
+    }),
+  ),
+});
+
+export const AskExpertResponse = zod.object({
+  answer: zod.string(),
+  contextCount: zod.number(),
+});
+
+/**
+ * @summary Parse unstructured user answers during onboarding
+ */
+export const AiParseAnswerBody = zod.object({
+  questionId: zod.string(),
+  questionText: zod.string(),
+  answer: zod.string(),
+});
+
+export const AiParseAnswerResponse = zod.object({
+  parsedValue: zod.string().nullable(),
+  extractedEntities: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
  * @summary AI conversation for requirement gathering
  */
 export const AiChatBody = zod.object({
@@ -443,18 +475,4 @@ export const AiChatResponse = zod.object({
     .optional(),
   isComplete: zod.boolean(),
   nextQuestion: zod.string().optional(),
-});
-
-/**
- * @summary Uses AI to parse a free-form answer into structured data
- */
-export const AiParseAnswerBody = zod.object({
-  questionId: zod.string(),
-  questionText: zod.string(),
-  answer: zod.string(),
-});
-
-export const AiParseAnswerResponse = zod.object({
-  parsedValue: zod.string(),
-  extractedEntities: zod.record(zod.string(), zod.unknown()).optional(),
 });

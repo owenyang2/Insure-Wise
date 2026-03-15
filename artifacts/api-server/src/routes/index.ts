@@ -4,6 +4,7 @@ import usersRouter from "./users";
 import insuranceRouter from "./insurance";
 import aiRouter from "./ai";
 import checkoutRouter from "./checkout";
+import onboardingValidationRouter from "./onboarding-validation";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(usersRouter);
 router.use(insuranceRouter);
 router.use(aiRouter);
 router.use(checkoutRouter);
+router.use(onboardingValidationRouter);
 
 export default router;

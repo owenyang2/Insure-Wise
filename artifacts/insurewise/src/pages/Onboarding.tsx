@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User as UserIcon, Bot, Loader2, Check } from "lucide-react";
-import { useUpsertUserProfile, useAiParseAnswer } from "@workspace/api-client-react";
+import { Send, User as UserIcon, Bot, Loader2, Check, Sparkles, Brain, Wand2, Gauge } from "lucide-react";
+import { useUpsertUserProfile, useAiParseAnswer, useAskExpert } from "@workspace/api-client-react";
 import { useStore } from "@/store/use-store";
 import { Navbar } from "@/components/layout/Navbar";
 
@@ -56,22 +56,7 @@ const BASE_QUESTIONS: Question[] = [
           },
         ];
       }
-      // If the answer is completely unrecognized ("i don't know", random letters, etc.)
-      // It defaults to Auto. We handled the user-facing message in handleSend, but here we must return the followUps for Auto.
-      return [
-        {
-          id: "vehicleMake",
-          text: "What's the make and model of your vehicle? (e.g. Toyota Camry)",
-          suggestions: ["Toyota Camry", "Honda Civic", "Ford F-150", "Tesla Model 3", "Chevrolet Silverado"],
-          placeholder: "Make and model...",
-        },
-        {
-          id: "vehicleYear",
-          text: "And what year is it?",
-          suggestions: ["2024", "2023", "2022", "2021", "2020", "2019 or older"],
-          placeholder: "Vehicle year...",
-        },
-      ];
+      return null;
     },
   },
   {
@@ -82,16 +67,16 @@ const BASE_QUESTIONS: Question[] = [
   },
   {
     id: "location",
-    text: "What state are you in?",
-    suggestions: ["California", "Texas", "Florida", "New York", "Illinois", "Other"],
-    placeholder: "State or city...",
+    text: "What province are you in?",
+    suggestions: ["Ontario", "British Columbia", "Alberta", "Quebec", "Nova Scotia", "Other"],
+    placeholder: "Province or city...",
     followUp: (answer) => {
       if (answer.toLowerCase() === "other") {
         return [
           {
             id: "locationCountry",
             text: "Which country are you in?",
-            suggestions: ["Canada", "United Kingdom", "Australia", "Germany", "France", "Mexico", "India"],
+            suggestions: ["United States", "United Kingdom", "Australia", "Germany", "France", "Mexico", "India"],
             placeholder: "Your country...",
           },
           {
@@ -156,7 +141,7 @@ function buildProfile(answers: Answers) {
   // Combine country + state/province when "Other" was selected
   const resolvedLocation = answers.locationCountry && answers.locationState
     ? `${answers.locationState}, ${answers.locationCountry}`
-    : answers.location || "United States";
+    : answers.location || "Canada";
 
   const insuranceType = insType.includes("auto") || insType.includes("car") ? "auto"
     : insType.includes("home") || insType.includes("house") ? "home"
@@ -196,6 +181,7 @@ function buildProfile(answers: Answers) {
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  variant?: "default" | "expert" | "parser";
 }
 
 export default function Onboarding() {
@@ -203,6 +189,7 @@ export default function Onboarding() {
   const { setUserProfileId } = useStore();
   const profileMutation = useUpsertUserProfile();
   const parseMutation = useAiParseAnswer();
+  const expertMutation = useAskExpert();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [questionQueue, setQuestionQueue] = useState<Question[]>([]);
@@ -213,8 +200,10 @@ export default function Onboarding() {
   const [isComplete, setIsComplete] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
+  const [isAskingExpert, setIsAskingExpert] = useState(false);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [aiMode, setAiMode] = useState<"auto" | "expert" | "parser">("auto");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -223,22 +212,18 @@ export default function Onboarding() {
     const [first, ...rest] = BASE_QUESTIONS;
     setCurrentQuestion(first);
     setQuestionQueue(rest);
-    setMessages([{ role: "assistant", content: first.text }]);
+    setMessages([{ role: "assistant", content: first.text, variant: "default" }]);
   }, []);
 
   // Auto-scroll
   useEffect(() => {
-    // A small timeout ensures the new message is fully rendered before calculating scroll pos
-    const timeoutId = setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-      }
-    }, 100);
-    return () => clearTimeout(timeoutId);
-  }, [messages, isSaving, currentQuestion]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isSaving]);
 
-  const advanceToNext = async (answer: string, questionId: string, queue: Question[], parsedEntities?: Record<string, any>) => {
-    const newAnswers = { ...answers, [questionId]: answer, ...(parsedEntities || {}) };
+  const advanceToNext = async (answer: string, questionId: string, queue: Question[], extracted?: Record<string, any>) => {
+    const newAnswers = { ...answers, ...extracted, [questionId]: answer };
     setAnswers(newAnswers);
 
     // Add follow-up questions from the current question's followUp fn
@@ -248,18 +233,7 @@ export default function Onboarding() {
       extraQuestions = currentQ.followUp(answer) || [];
     }
 
-    let fullQueue = [...extraQuestions, ...queue];
-
-    // Remove any questions that have already been answered (e.g. via AI extraction)
-    fullQueue = fullQueue.filter(q => {
-      // If the question requires multiSelect, check if its id exists and has at least some content
-      if (q.multiSelect) {
-        return !newAnswers[q.id] || newAnswers[q.id].length === 0;
-      }
-      return !newAnswers[q.id];
-    });
-
-    console.log("ADVANCING. Current ID:", questionId, "Q_QUEUE passed:", queue, "Extra:", extraQuestions, "Full generated:", fullQueue);
+    const fullQueue = [...extraQuestions, ...queue];
 
     if (fullQueue.length === 0) {
       // Done — save profile
@@ -283,7 +257,7 @@ export default function Onboarding() {
       setQuestionQueue(remaining);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: next.text },
+        { role: "assistant", content: next.text, variant: "default" },
       ]);
     }
   };
@@ -302,36 +276,63 @@ export default function Onboarding() {
       if (!answer) return;
     }
 
+    // Determine if we should route to Moorcheh (Expert) or Parser
+    let isQuestion = false;
+    if (aiMode === "expert") {
+      isQuestion = true;
+    } else if (aiMode === "parser") {
+      isQuestion = false;
+    } else {
+      isQuestion = answer.trim().endsWith("?") || /^(what|why|how|can|could|would|will|explain|tell me)\b/i.test(answer.trim());
+    }
+
+    if (isQuestion) {
+      setMessages((prev) => [...prev, { role: "user", content: answer }]);
+      setInput("");
+      setIsAskingExpert(true);
+      try {
+        const res = await expertMutation.mutateAsync({
+          data: {
+            query: answer,
+            chatHistory: messages.map(m => ({ role: m.role as "user" | "assistant" | "system", content: m.content }))
+          }
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: res.answer,
+            variant: "expert"
+          },
+          {
+            role: "assistant",
+            content: currentQuestion.text,
+            variant: "default"
+          }
+        ]);
+      } catch (err) {
+        console.error("Moorcheh expert failed", err);
+        setMessages((prev) => [
+          ...prev,
+          { 
+            role: "assistant", 
+            content: "I'm having trouble connecting to my knowledge base right now.",
+            variant: "expert"
+          }
+        ]);
+      }
+      setIsAskingExpert(false);
+      return; // Stop processing as an answer
+    }
+
     let finalAnswer = answer;
     let extractedEntities: Record<string, any> | undefined;
 
     if (!currentQuestion.multiSelect) {
-      if (currentQuestion.suggestions) {
-        // If there are suggestions, check if it's an exact match
-        const matchesSuggestion = currentQuestion.suggestions.some(s => s.toLowerCase() === answer.toLowerCase());
+      const isExactMatch = currentQuestion.suggestions?.some(s => s.toLowerCase() === answer.toLowerCase());
 
-        if (!matchesSuggestion) {
-          // It's a free-form answer for a multiple-choice question. Use AI to parse and classify it.
-          setIsParsing(true);
-          try {
-            const res = await parseMutation.mutateAsync({
-              data: {
-                questionId: currentQuestion.id,
-                questionText: currentQuestion.text,
-                answer: answer,
-              }
-            });
-            finalAnswer = res.parsedValue;
-            extractedEntities = res.extractedEntities;
-
-            // Let the fallback block below handle any unrecognized answers
-          } catch (e) {
-            console.error("Failed to parse via AI", e);
-          }
-          setIsParsing(false);
-        }
-      } else {
-        // It's a completely open-ended question (like Name). Parse it just in case there's extra context.
+      if (!isExactMatch) {
         setIsParsing(true);
         try {
           const res = await parseMutation.mutateAsync({
@@ -341,68 +342,34 @@ export default function Onboarding() {
               answer: answer,
             }
           });
+
+          if (!res.parsedValue) {
+            setMessages((prev) => [
+              ...prev,
+              { role: "user", content: answer },
+              {
+                role: "assistant", 
+                content: currentQuestion.suggestions && currentQuestion.suggestions.length > 0
+                  ? "I'm sorry, I didn't quite understand that. Could you please clarify or choose one of the options?"
+                  : "I'm sorry, I didn't quite catch that. Could you please clarify?",
+                variant: "parser"
+              }
+            ]);
+            setInput("");
+            setSelected([]);
+            setIsParsing(false);
+            return;
+          }
+
           finalAnswer = res.parsedValue;
           extractedEntities = res.extractedEntities;
         } catch (e) {
-          console.error("Failed to parse open-ended via AI", e);
+          console.error("Failed to parse via AI", e);
         }
         setIsParsing(false);
       }
     }
-
     setMessages((prev) => [...prev, { role: "user", content: answer }]);
-
-    // Validate the AI's final answer against required suggestions if they exist
-    let isInvalidChoice = false;
-    if (currentQuestion.suggestions && finalAnswer && finalAnswer.toLowerCase() !== "null") {
-      isInvalidChoice = !currentQuestion.suggestions.some(s => s.toLowerCase() === finalAnswer.toLowerCase());
-    }
-
-    const hasExtractedEntities = extractedEntities && Object.keys(extractedEntities).length > 0;
-
-    // Fallback if AI explicitly returns null/invalid because the answer was completely useless
-    // OR if the parsed value still doesn't match any valid suggestion for a strict-choice question
-    // BUT we shouldn't block progress if it successfully extracted side-entities (e.g. they typed "Honda model 3" on the Name question)
-    if ((!finalAnswer || finalAnswer.toLowerCase() === "null" || isInvalidChoice) && !hasExtractedEntities) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "I'm not quite sure what you meant by that. Could you try selecting one of the options below, or rephrasing?"
-        }
-      ]);
-      setInput("");
-      return;
-    }
-
-    // If finalAnswer was null but we extracted entities, we shouldn't save "null" or the raw string to the primary question ID.
-    if ((!finalAnswer || finalAnswer.toLowerCase() === "null" || isInvalidChoice) && hasExtractedEntities) {
-      finalAnswer = ""; // clear the primary answer so they are asked this question again if it's mandatory
-    }
-
-    // Add visual feedback about the AI's deductions
-    if (extractedEntities && Object.keys(extractedEntities).length > 0) {
-      const formattedKeys = Object.keys(extractedEntities)
-        .map(k => k.replace(/([A-Z])/g, " $1").toLowerCase().trim())
-        .join(", ");
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Got it! I've also noted down your ${formattedKeys} so we can skip those questions.`
-        }
-      ]);
-    } else if (finalAnswer !== answer && !extractedEntities) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `I've recorded that as "${finalAnswer}" for our system.`
-        }
-      ]);
-    }
-
     setInput("");
     setSelected([]);
 
@@ -423,6 +390,12 @@ export default function Onboarding() {
     }
   };
 
+  const totalSteps = BASE_QUESTIONS.length;
+  const completedSteps = Object.keys(answers).filter(
+    (k) => BASE_QUESTIONS.some((q) => q.id === k)
+  ).length;
+  const progress = Math.round((completedSteps / totalSteps) * 100);
+
   const saveEdit = (k: string) => {
     if (!editValue.trim()) {
       deleteEdit(k);
@@ -440,12 +413,6 @@ export default function Onboarding() {
     });
     setEditingKey(null);
   };
-
-  const totalSteps = BASE_QUESTIONS.length;
-  const completedSteps = Object.keys(answers).filter(
-    (k) => BASE_QUESTIONS.some((q) => q.id === k)
-  ).length;
-  const progress = Math.round((completedSteps / totalSteps) * 100);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -484,6 +451,20 @@ export default function Onboarding() {
                   Online
                 </p>
               </div>
+              {isParsing && (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm pl-4 animate-pulse">
+                  <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  Analyzing your answer...
+                </div>
+              )}
+              {isAskingExpert && (
+                <div className="flex items-center gap-2 text-indigo-500 text-sm pl-4 animate-pulse font-medium">
+                  <Sparkles className="w-4 h-4 animate-spin-slow" />
+                  Moorcheh AI is researching your question...
+                </div>
+              )}
             </div>
 
             {/* Messages */}
@@ -497,13 +478,25 @@ export default function Onboarding() {
                     transition={{ duration: 0.25 }}
                     className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
                   >
-                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm ${msg.role === "user" ? "bg-primary text-white" : "bg-primary/10 text-primary"
+                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm ${
+                        msg.role === "user" 
+                          ? "bg-primary text-white" 
+                          : msg.variant === "expert"
+                            ? "bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200"
+                          : msg.variant === "parser"
+                            ? "bg-emerald-100 text-emerald-600 shadow-sm border border-emerald-200"
+                            : "bg-primary/10 text-primary"
                       }`}>
-                      {msg.role === "user" ? <UserIcon size={16} /> : <Bot size={16} />}
+                      {msg.role === "user" ? <UserIcon size={16} /> : msg.variant === "expert" ? <Sparkles size={16} /> : msg.variant === "parser" ? <Wand2 size={16} /> : <Bot size={16} />}
                     </div>
-                    <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-tr-sm"
-                      : "bg-gray-100 text-foreground rounded-tl-sm border border-border/50"
+                    <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-sm"
+                        : msg.variant === "expert"
+                          ? "bg-indigo-50 text-indigo-950 rounded-tl-sm border border-indigo-100"
+                        : msg.variant === "parser"
+                          ? "bg-emerald-50 text-emerald-950 rounded-tl-sm border border-emerald-100"
+                          : "bg-gray-100 text-foreground rounded-tl-sm border border-border/50"
                       }`}>
                       {msg.content}
                     </div>
@@ -572,6 +565,35 @@ export default function Onboarding() {
                   </div>
                 )}
 
+                {/* AI Routing Toggle */}
+                <div className="flex flex-col gap-1 mb-2">
+                  <div className="flex bg-gray-100 p-1 rounded-full w-fit">
+                    <button
+                      onClick={() => setAiMode("auto")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'auto' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <Gauge size={14} /> Auto
+                    </button>
+                    <button
+                      onClick={() => setAiMode("expert")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'expert' ? 'bg-indigo-50 shadow text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <Sparkles size={14} /> Moorcheh
+                    </button>
+                    <button
+                      onClick={() => setAiMode("parser")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'parser' ? 'bg-emerald-50 shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                      <Wand2 size={14} /> OpenAI
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pl-2 italic">
+                    {aiMode === 'auto' && "Smart routing: answers form fields, searches knowledge for questions."}
+                    {aiMode === 'expert' && "Sidebar mode: strictly ask Moorcheh's knowledge base without advancing."}
+                    {aiMode === 'parser' && "Form mode: strictly extract answers to your profile using OpenAI."}
+                  </p>
+                </div>
+
                 {/* Text input */}
                 <form
                   onSubmit={(e) => { e.preventDefault(); handleSend(); }}
@@ -606,79 +628,64 @@ export default function Onboarding() {
             )}
             {/* Dummy div to scroll to includes the input form now */}
             <div ref={scrollRef} className="h-4" />
+
           </div>
         </div>
 
-        {/* Sidebar for Tracked Data */}
-        <aside className="w-80 hidden lg:block shrink-0">
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-border sticky top-24">
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              Captured Details
+        {/* SIDEBAR */}
+        <div className="w-80 hidden lg:flex flex-col gap-4">
+          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 border border-blue-100 shadow-xl shadow-blue-900/5 flex-1 overflow-y-auto">
+            <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5" /> Captured Details
             </h3>
             {Object.keys(answers).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No details captured yet.</p>
+              <p className="text-sm text-blue-800/60">I'll automatically extract your details here as we chat.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <AnimatePresence>
-                  {Object.entries(answers).map(([k, v]) => {
-                    // Filter out internal falsey stuff if needed
-                    if (!v && v !== "") return null;
-                    const label = k.replace(/([A-Z])/g, " $1").trim().replace(/^./, str => str.toUpperCase());
-                    
-                    const isEditing = editingKey === k;
-
-                    return (
-                      <motion.div
-                        key={k}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex flex-col border-b border-border/50 pb-3 last:border-0 last:pb-0 group"
-                      >
-                        <span className="text-xs text-muted-foreground font-medium mb-1 flex justify-between items-center">
-                          {label}
-                          {!isEditing && (
-                            <button 
-                              onClick={() => { setEditingKey(k); setEditValue(String(v)); }}
-                              className="text-primary/0 group-hover:text-primary transition-colors text-[10px] underline hover:no-underline"
-                            >
-                              Edit
-                            </button>
-                          )}
-                        </span>
-                        {isEditing ? (
-                          <div className="flex gap-2 items-center mt-1">
-                            <input 
-                              type="text" 
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              className="flex-1 min-w-0 bg-gray-50 border border-border rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveEdit(k);
-                                if (e.key === 'Escape') setEditingKey(null);
-                              }}
-                            />
-                            <button onClick={() => saveEdit(k)} className="text-emerald-600 hover:text-emerald-700 p-1 bg-emerald-50 rounded-md">
-                              <Check size={14} />
-                            </button>
-                            <button onClick={() => deleteEdit(k)} className="text-red-500 hover:text-red-600 p-1 bg-red-50 rounded-md">
-                              <span className="sr-only">Delete</span>
-                              &times;
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-sm font-medium text-foreground">{String(v)}</span>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                  {Object.entries(answers).map(([k, v]) => (
+                    <motion.div
+                      key={k}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50 relative group"
+                    >
+                      <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-1">
+                        {k.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      {editingKey === k ? (
+                        <div className="flex gap-2">
+                          <input
+                            autoFocus
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(k); }}
+                            className="w-full text-sm border border-blue-200 rounded px-2 py-1 outline-none"
+                          />
+                          <button onClick={() => saveEdit(k)} className="text-xs bg-blue-500 text-white px-2 rounded">
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-blue-950 block">{v as string}</span>
+                          <button
+                            onClick={() => { setEditingKey(k); setEditValue(v as string); }}
+                            className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 transition-opacity"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
                 </AnimatePresence>
               </div>
             )}
           </div>
-        </aside>
+        </div>
       </main>
     </div>
   );
 }
+

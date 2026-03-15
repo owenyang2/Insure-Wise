@@ -7,7 +7,7 @@ const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL must be set. Create artifacts/api-server/.env with DATABASE_URL=postgresql://YOUR_USER@localhost:5432/insurewise (see README).",
   );
 }
 
@@ -16,3 +16,4 @@ export const db = drizzle(pool, { schema });
 
 export * from "./schema";
 export * from "./schema/applications";
+export * from "./schema/quoteResults";

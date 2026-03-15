@@ -8,6 +8,6 @@
 import type { AiParseAnswerResponseExtractedEntities } from "./aiParseAnswerResponseExtractedEntities";
 
 export interface AiParseAnswerResponse {
-  parsedValue: string;
-  extractedEntities?: AiParseAnswerResponseExtractedEntities;
+  parsedValue: string | null;
+  extractedEntities: AiParseAnswerResponseExtractedEntities;
 }

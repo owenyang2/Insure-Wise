@@ -13,7 +13,7 @@ InsureWise is an end-to-end agentic AI platform that helps users find, compare, 
 - **Frontend**: React + Vite + Tailwind CSS + shadcn/ui + Zustand + Framer Motion
 - **Backend**: Express 5 (Node.js)
 - **Database**: PostgreSQL + Drizzle ORM
-- **AI**: Anthropic Claude (via Replit AI Integrations) — claude-haiku-4-5 for chat and policy analysis
+- **AI**: GPT-OSS 120B (OpenAI-compatible API, e.g. Hugging Face); configurable via `OPENAI_BASE_URL` / `AI_MODEL` for chat and policy analysis
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
@@ -37,13 +37,12 @@ lib/
 ├── api-zod/            # Generated Zod schemas
 ├── db/                 # Drizzle ORM schema + DB connection
 │   └── schema/         # users.ts, conversations.ts, messages.ts
-└── integrations-anthropic-ai/  # Anthropic AI client
 ```
 
 ## User Flow (7 Phases)
 
 1. **Landing** (`/`) — Hero, features, CTA
-2. **AI Onboarding Chat** (`/onboard`) — Conversational intake via Claude, extracts profile
+2. **AI Onboarding Chat** (`/onboard`) — Conversational intake via AI (GPT-OSS/OpenAI-compatible), extracts profile
 3. **Policy Comparison** (`/compare`) — Priority-weighted ranked policy cards, live re-ranking
 4. **Policy Detail** (`/policy/:id`) — AI analysis, coverage breakdown (covered/partial/gaps)
 5. **Application Auto-Fill** (`/apply/:id`) — Pre-filled form from user profile
@@ -76,7 +75,6 @@ lib/
 ### Backend (`artifacts/api-server`)
 - `@workspace/db` — Drizzle + PostgreSQL
 - `@workspace/api-zod` — Zod validation schemas
-- `@workspace/integrations-anthropic-ai` — Anthropic Claude client
 
 ## Development Commands
 
