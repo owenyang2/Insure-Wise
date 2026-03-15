@@ -224,7 +224,7 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
         { fieldId: "first_name", label: "First Name", value: profile?.name?.split(" ")[0] || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "last_name", label: "Last Name", value: profile?.name?.split(" ").slice(1).join(" ") || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "age", label: "Age", value: profile?.age?.toString() || "", fieldType: "number" as const, required: true, editable: true },
-        { fieldId: "location", label: "State / ZIP", value: profile?.location || "", fieldType: "text" as const, required: true, editable: true },
+        { fieldId: "location", label: "Province / Postal Code", value: profile?.location || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "email", label: "Email Address", value: "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "phone", label: "Phone Number", value: "", fieldType: "text" as const, required: false, editable: true },
       ],

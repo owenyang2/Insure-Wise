@@ -67,16 +67,16 @@ const BASE_QUESTIONS: Question[] = [
   },
   {
     id: "location",
-    text: "What state are you in?",
-    suggestions: ["California", "Texas", "Florida", "New York", "Illinois", "Other"],
-    placeholder: "State or city...",
+    text: "What province are you in?",
+    suggestions: ["Ontario", "British Columbia", "Alberta", "Quebec", "Nova Scotia", "Other"],
+    placeholder: "Province or city...",
     followUp: (answer) => {
       if (answer.toLowerCase() === "other") {
         return [
           {
             id: "locationCountry",
             text: "Which country are you in?",
-            suggestions: ["Canada", "United Kingdom", "Australia", "Germany", "France", "Mexico", "India"],
+            suggestions: ["United States", "United Kingdom", "Australia", "Germany", "France", "Mexico", "India"],
             placeholder: "Your country...",
           },
           {
@@ -141,7 +141,7 @@ function buildProfile(answers: Answers) {
   // Combine country + state/province when "Other" was selected
   const resolvedLocation = answers.locationCountry && answers.locationState
     ? `${answers.locationState}, ${answers.locationCountry}`
-    : answers.location || "United States";
+    : answers.location || "Canada";
 
   const insuranceType = insType.includes("auto") || insType.includes("car") ? "auto"
     : insType.includes("home") || insType.includes("house") ? "home"
@@ -302,7 +302,7 @@ export default function Onboarding() {
           ...prev,
           {
             role: "assistant",
-            content: `🔍 **Insurance Expert (Sources: ${res.contextCount})**\n\n${res.answer}`,
+            content: res.answer,
             variant: "expert"
           },
           {

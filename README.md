@@ -5,11 +5,14 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 ## Features
 
 - **AI Onboarding Chat** — structured question flow that captures your profile with tappable answer chips
+- **Dual AI Engine Routing**:
+  - **OpenAI Parser (Form Extraction)** — parses your conversational text to extract exact structured JSON form answers (e.g. converting "I drive a 2012 honda" into `{"vehicleMake": "Honda", "vehicleYear": 2012}`) using GPT-OSS 120B.
+  - **Moorcheh Knowledge Assistant (RAG)** — a dedicated Python-based semantic memory vector engine that acts as a sidebar expert. If you ask a question during onboarding (e.g. "What does comprehensive cover?"), the request is instantly routed to the Moorcheh SDK worker to pull factual data from the seeded knowledge base without disrupting your application flow.
+  - **Manual UI Override** — A segmented control toggle on the chat screen lets you force the bot into "Auto", "Moorcheh Expert", or "OpenAI Parser" modes to explicitly demonstrate each engine during the hackathon.
 - **Policy Comparison** — priority-weighted ranking across 5 auto + 1 home policy (price / coverage / rating sliders)
 - **AI Policy Explainer** — plain-language breakdown of what's covered, partially covered, and missing
 - **Auto-Fill Applications** — pre-populated forms from your profile data
 - **Premium Optimizer** — hyper-specific AI tips to lower your premium (location, credit score, deductible, bundling, etc.)
-- **Moorcheh Knowledge Assistant** — dedicated AI RAG powered by Moorcheh executing Python backend worker processes to provide verified insurance answers.
 - **Profile Management** — edit your details and re-run the optimizer at any time
 
 ## Tech Stack
@@ -110,13 +113,13 @@ This creates the users, conversations, and messages tables.
 Our application uses official Python packages to connect sequentially to the Moorcheh Semantic Memory backend.
 
 ```bash
-pip3 install -r artifacts/api-server/src/python-workers/requirements.txt
+pip install -r artifacts/api-server/src/python-workers/requirements.txt
 ```
 
 Before running the application, make sure to push the mock insurance knowledge packages to Moorcheh's servers using the seed script (this uses the `MOORCHEH_API_KEY` defined in `api-server/.env`):
 
 ```bash
-python3 scripts/seed-moorcheh.py
+python scripts/seed-moorcheh.py
 ```
 
 ### 5. Start both servers
