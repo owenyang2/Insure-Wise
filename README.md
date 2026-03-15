@@ -42,8 +42,8 @@ InsureWise is an AI-powered insurance comparison and recommendation platform. Us
 ### 1. Clone and install
 
 ```bash
-git clone <your-repo-url>
-cd Insure-Wise
+git clone https://github.com/owenyang2/InsureWise.git
+cd InsureWise
 pnpm install
 ```
 
@@ -211,6 +211,5 @@ pnpm --filter @workspace/api-spec run codegen
 ## Notes
 
 - **Session identity** is managed via the `x-session-id` request header. The frontend assigns a UUID per browser session stored in localStorage.
-- **Policy data** is mocked in `artifacts/api-server/src/lib/mockPolicies.ts` — 5 auto policies and 1 home policy with full coverage maps and scoring logic.
 - **The Optimizer and Policy Explainer** use the configured AI model (GPT-OSS 120B by default via Hugging Face; override with `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `AI_MODEL` for OpenAI or another OpenAI-compatible endpoint).
 - **The Knowledge Assistant** uses the Python `moorcheh-sdk` to execute semantic document retrieval, requiring Python `3.10`+ to be installed locally to successfully spawn the child worker processes locally.
