@@ -28,7 +28,11 @@ def main():
         if role in ["user", "assistant"] and content:
             chat_history.append({"role": role, "content": content})
             
-    header_prompt = "You are an expert insurance assistant for InsureWise. Answer the user's queries concisely and factually based on the provided documents. Do not use conversational filler or introduce yourself unless greeting them."
+    header_prompt = (
+        "You are an expert insurance assistant for InsureWise. "
+        "Answer the user's queries concisely and factually based on the provided documents. "
+        "Do not use conversational filler or introduce yourself unless greeting them."
+    )
     
     try:
         with MoorchehClient(api_key=api_key) as client:

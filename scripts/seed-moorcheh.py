@@ -31,6 +31,13 @@ KNOWLEDGE_DOCS = [
         "provider": "Desjardins"
     },
     {
+        "id": "insurewise-stack-01",
+        "text": "InsureWise was created for the GenAI Genesis 2026 hackathon by a team of four developers: Owen, Harsimar, Niranjan, and Roy. The platform was built using a modern technology stack. The frontend uses React, Vite, Tailwind CSS, and shadcn/ui, with Zustand for state management. The backend is an Express 5 (Node.js) REST API. Data is stored in PostgreSQL using Drizzle ORM. Retrieval-augmented generation (RAG) is powered by Moorcheh AI and Python. AI features use GPT-OSS 120B, which is OpenAI-compatible. The project is managed as a pnpm monorepo. The codebase is organized into separate folders for the backend, frontend, and shared libraries. InsureWise uses AI to provide context-aware insurance answers, optimize premiums, and help users fill out application forms more easily.",
+        "title": "How was InsureWise made?",
+        "category": "platform",
+        "provider": "InsureWise"
+    },
+    {
         "id": "general-auto-01",
         "text": "Comprehensive coverage protects your car against damage not caused by a collision, such as theft, vandalism, fire, or weather. Collision coverage pays to repair or replace your car if it's damaged in an accident with another vehicle or object, regardless of who is at fault.",
         "title": "Comprehensive vs Collision",
@@ -46,7 +53,7 @@ KNOWLEDGE_DOCS = [
     },
     {
         "id": "insurewise-platform-01",
-        "text": "InsureWise is an intelligent, user-friendly insurance platform designed to simplify the insurance shopping and application process. It leverages AI, including the Moorcheh semantic memory RAG engine, to provide context-aware, verifiable answers to user questions, optimize insurance premiums, and smartly pre-fill application forms.",
+        "text": "InsureWise is an intelligent, user-friendly insurance platform designed to simplify the insurance shopping and application process. It leverages AI, including the Moorcheh semantic memory RAG engine, to provide context-aware, verifiable answers to user questions, optimize insurance premiums, and smartly pre-fill application forms. InsureWise was created for the GenAI Genesis 2026 hackathon by Owen, Harsimar, Niranjan, and Roy.",
         "title": "What is InsureWise",
         "category": "platform",
         "provider": "InsureWise"

@@ -77,7 +77,7 @@ export default function Home() {
                 {
                   icon: Zap,
                   title: "Instant Gap Analysis",
-                  desc: "We read the 50-page policy documents so you don't have to, highlighting exactly what's covered and what's not."
+                  desc: "Our AI analyzes policies to highlight exactly what's covered and what's not."
                 },
                 {
                   icon: CheckCircle2,
