@@ -23,6 +23,8 @@ import type {
   AiParseAnswerResponse,
   ApplicationConfirmation,
   ApplicationForm,
+  AskExpertBody,
+  AskExpertResponse,
   ErrorResponse,
   ExplainPolicyRequest,
   ExplainPolicyResponse,
@@ -629,6 +631,178 @@ export const useSubmitApplication = <
 };
 
 /**
+ * @summary Query the Moorcheh semantic memory expert
+ */
+export const getAskExpertUrl = () => {
+  return `/api/ai/ask-expert`;
+};
+
+export const askExpert = async (
+  askExpertBody: AskExpertBody,
+  options?: RequestInit,
+): Promise<AskExpertResponse> => {
+  return customFetch<AskExpertResponse>(getAskExpertUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(askExpertBody),
+  });
+};
+
+export const getAskExpertMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof askExpert>>,
+    TError,
+    { data: BodyType<AskExpertBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof askExpert>>,
+  TError,
+  { data: BodyType<AskExpertBody> },
+  TContext
+> => {
+  const mutationKey = ["askExpert"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof askExpert>>,
+    { data: BodyType<AskExpertBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return askExpert(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AskExpertMutationResult = NonNullable<
+  Awaited<ReturnType<typeof askExpert>>
+>;
+export type AskExpertMutationBody = BodyType<AskExpertBody>;
+export type AskExpertMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Query the Moorcheh semantic memory expert
+ */
+export const useAskExpert = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof askExpert>>,
+    TError,
+    { data: BodyType<AskExpertBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof askExpert>>,
+  TError,
+  { data: BodyType<AskExpertBody> },
+  TContext
+> => {
+  return useMutation(getAskExpertMutationOptions(options));
+};
+
+/**
+ * @summary Parse unstructured user answers during onboarding
+ */
+export const getAiParseAnswerUrl = () => {
+  return `/api/ai/parse-answer`;
+};
+
+export const aiParseAnswer = async (
+  aiParseAnswerRequest: AiParseAnswerRequest,
+  options?: RequestInit,
+): Promise<AiParseAnswerResponse> => {
+  return customFetch<AiParseAnswerResponse>(getAiParseAnswerUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiParseAnswerRequest),
+  });
+};
+
+export const getAiParseAnswerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    TError,
+    { data: BodyType<AiParseAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiParseAnswer>>,
+  TError,
+  { data: BodyType<AiParseAnswerRequest> },
+  TContext
+> => {
+  const mutationKey = ["aiParseAnswer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    { data: BodyType<AiParseAnswerRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiParseAnswer(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiParseAnswerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiParseAnswer>>
+>;
+export type AiParseAnswerMutationBody = BodyType<AiParseAnswerRequest>;
+export type AiParseAnswerMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Parse unstructured user answers during onboarding
+ */
+export const useAiParseAnswer = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    TError,
+    { data: BodyType<AiParseAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiParseAnswer>>,
+  TError,
+  { data: BodyType<AiParseAnswerRequest> },
+  TContext
+> => {
+  return useMutation(getAiParseAnswerMutationOptions(options));
+};
+
+/**
  * @summary AI conversation for requirement gathering
  */
 export const getAiChatUrl = () => {
@@ -712,90 +886,4 @@ export const useAiChat = <
   TContext
 > => {
   return useMutation(getAiChatMutationOptions(options));
-};
-
-/**
- * @summary Uses AI to parse a free-form answer into structured data
- */
-export const getAiParseAnswerUrl = () => {
-  return `/api/ai/parse-answer`;
-};
-
-export const aiParseAnswer = async (
-  aiParseAnswerRequest: AiParseAnswerRequest,
-  options?: RequestInit,
-): Promise<AiParseAnswerResponse> => {
-  return customFetch<AiParseAnswerResponse>(getAiParseAnswerUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(aiParseAnswerRequest),
-  });
-};
-
-export const getAiParseAnswerMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof aiParseAnswer>>,
-    TError,
-    { data: BodyType<AiParseAnswerRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof aiParseAnswer>>,
-  TError,
-  { data: BodyType<AiParseAnswerRequest> },
-  TContext
-> => {
-  const mutationKey = ["aiParseAnswer"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof aiParseAnswer>>,
-    { data: BodyType<AiParseAnswerRequest> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return aiParseAnswer(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type AiParseAnswerMutationResult = NonNullable<
-  Awaited<ReturnType<typeof aiParseAnswer>>
->;
-export type AiParseAnswerMutationBody = BodyType<AiParseAnswerRequest>;
-export type AiParseAnswerMutationError = ErrorType<unknown>;
-
-/**
- * @summary Uses AI to parse a free-form answer into structured data
- */
-export const useAiParseAnswer = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof aiParseAnswer>>,
-    TError,
-    { data: BodyType<AiParseAnswerRequest> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof aiParseAnswer>>,
-  TError,
-  { data: BodyType<AiParseAnswerRequest> },
-  TContext
-> => {
-  return useMutation(getAiParseAnswerMutationOptions(options));
 };

@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
+import path from "node:path";
 import { Router, type IRouter } from "express";
+import { z } from "zod";
 import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
 import { schemas } from "@workspace/api-zod";
-const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody, AiParseAnswerBody } = schemas;
+const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody, AiParseAnswerBody, AskExpertBody } = schemas;
 import { db, userProfilesTable, applicationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { getPoliciesForType, scoreAndRankPolicies } from "../lib/mockPolicies.js";
@@ -26,8 +29,8 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
     const coveredReqs = requirements.filter((r: string) => {
       const key = r.toLowerCase().trim();
       const match = Object.entries(p.coverageMap).find(([k]) =>
-        key === k.toLowerCase().trim() || 
-        k.toLowerCase().includes(key) || 
+        key === k.toLowerCase().trim() ||
+        k.toLowerCase().includes(key) ||
         key.includes(k.toLowerCase())
       );
       return match && match[1].status === "covered";
@@ -35,8 +38,8 @@ router.post("/insurance/search", async (req, res): Promise<void> => {
     const gapReqs = requirements.filter((r: string) => {
       const key = r.toLowerCase().trim();
       const match = Object.entries(p.coverageMap).find(([k]) =>
-        key === k.toLowerCase().trim() || 
-        k.toLowerCase().includes(key) || 
+        key === k.toLowerCase().trim() ||
+        k.toLowerCase().includes(key) ||
         key.includes(k.toLowerCase())
       );
       return !match || match[1].status !== "covered";
@@ -100,8 +103,8 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
   const coverageItems = requirements.map((req: string) => {
     const key = req.toLowerCase().trim();
     const match = Object.entries(policy.coverageMap).find(([k]) =>
-      key === k.toLowerCase().trim() || 
-      k.toLowerCase().includes(key) || 
+      key === k.toLowerCase().trim() ||
+      k.toLowerCase().includes(key) ||
       key.includes(k.toLowerCase())
     );
     if (match) {
@@ -221,7 +224,7 @@ router.post("/insurance/policies/:policyId/application", async (req, res): Promi
         { fieldId: "first_name", label: "First Name", value: profile?.name?.split(" ")[0] || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "last_name", label: "Last Name", value: profile?.name?.split(" ").slice(1).join(" ") || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "age", label: "Age", value: profile?.age?.toString() || "", fieldType: "number" as const, required: true, editable: true },
-        { fieldId: "location", label: "State / ZIP", value: profile?.location || "", fieldType: "text" as const, required: true, editable: true },
+        { fieldId: "location", label: "Province / Postal Code", value: profile?.location || "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "email", label: "Email Address", value: "", fieldType: "text" as const, required: true, editable: true },
         { fieldId: "phone", label: "Phone Number", value: "", fieldType: "text" as const, required: false, editable: true },
       ],
@@ -470,7 +473,7 @@ Respond ONLY with valid JSON in this exact format:
 
     const raw = response.choices[0]?.message?.content ?? "";
     let result = { parsedValue: answer, extractedEntities: {} };
-    
+
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -481,11 +484,81 @@ Respond ONLY with valid JSON in this exact format:
     } catch (e) {
       console.error("Failed to parse AI Answer JSON, falling back.", e);
     }
-    
+
     res.json(result);
   } catch (err) {
     console.error("Parse answer error:", err);
     res.status(500).json({ error: "ai_error", message: "Failed to parse answer" });
+  }
+});
+
+
+router.post("/ai/ask-expert", async (req, res): Promise<void> => {
+  const parsed = AskExpertBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "validation_error", message: parsed.error.message });
+    return;
+  }
+
+  const { query, chatHistory } = parsed.data;
+
+  try {
+    const pythonScriptPath = path.join(process.cwd(), "src", "python-workers", "moorcheh.py");
+
+    const pythonProcess = spawn("python3", [pythonScriptPath], {
+      env: {
+        ...process.env,
+        MOORCHEH_API_KEY: process.env.MOORCHEH_API_KEY || "",
+      }
+    });
+
+    let stdoutData = "";
+    let stderrData = "";
+
+    pythonProcess.stdout.on("data", (data) => {
+      stdoutData += data.toString();
+    });
+
+    pythonProcess.stderr.on("data", (data) => {
+      stderrData += data.toString();
+    });
+
+    pythonProcess.on("close", (code) => {
+      if (code !== 0) {
+        console.error("Python worker failed:", stderrData);
+        res.status(500).json({ error: "ai_error", message: "Python script error" });
+        return;
+      }
+
+      try {
+        const resultJSON = JSON.parse(stdoutData.trim());
+        if (resultJSON.error) {
+          console.error("Moorcheh Error:", resultJSON.error);
+          res.status(500).json({ error: "ai_error", message: resultJSON.error });
+          return;
+        }
+
+        res.json({
+          answer: resultJSON.answer,
+          contextCount: resultJSON.contextCount || 0
+        });
+      } catch (e) {
+        console.error("Failed to parse python stdout:", stdoutData);
+        res.status(500).json({ error: "ai_error", message: "Invalid response from python worker" });
+      }
+    });
+
+    // Write the inputs to stdin
+    pythonProcess.stdin.write(JSON.stringify({
+      namespace: "insurewise-knowledge",
+      query: query,
+      chatHistory: chatHistory
+    }));
+    pythonProcess.stdin.end();
+
+  } catch (err) {
+    console.error("Ask expert error:", err);
+    res.status(500).json({ error: "ai_error", message: "Failed to ask expert" });
   }
 });
 

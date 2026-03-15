@@ -8,7 +8,7 @@ const ValidateAnswerBody = z.object({
   questionId: z.string(),
   questionText: z.string(),
   answer: z.string(),
-  previousAnswers: z.record(z.string()).optional(),
+  previousAnswers: z.record(z.string(), z.string()).optional(),
 });
 
 /**
@@ -91,7 +91,7 @@ VALIDATION RULES:
 
 3. **Vehicle year**: Must be between 1900 and current year + 1. Reject impossible years. Ignore irrelevant comments.
 
-4. **Location**: Must be a real location (city, state, or country). Reject nonsensical places (like "Mars", "Narnia"). Ignore irrelevant comments.
+4. **Location**: Must be a real location (city, province, or country). Reject nonsensical places (like "Mars", "Narnia"). Ignore irrelevant comments.
 
 5. **Budget**: Must be a reasonable dollar amount ($20-$2000/month). Reject nonsensical values. Ignore irrelevant comments.
 
