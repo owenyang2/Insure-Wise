@@ -229,7 +229,24 @@ export default function Onboarding() {
   const [editValue, setEditValue] = useState("");
   const [aiMode, setAiMode] = useState<"auto" | "expert" | "parser">("auto");
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to scroll to bottom
+  const scrollToBottom = (immediate = false) => {
+    if (!scrollRef.current) return;
+    
+    const container = scrollRef.current;
+    
+    // Always use immediate scroll for reliability
+    // The smooth behavior can be unreliable in some browsers
+    container.scrollTop = container.scrollHeight;
+    
+    // Also try scrollIntoView on the anchor as backup
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: immediate ? "auto" : "smooth" });
+    }
+  };
 
   // Initialize
   useEffect(() => {
@@ -239,10 +256,32 @@ export default function Onboarding() {
     setMessages([{ role: "assistant", content: first.text, variant: "default" }]);
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll to bottom when messages, parsing, or saving state changes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isSaving, isParsing, currentQuestion]);
+    // Use multiple attempts to ensure scroll happens
+    const attemptScroll = () => {
+      scrollToBottom(false);
+    };
+
+    // Immediate attempt
+    const timeout1 = setTimeout(attemptScroll, 0);
+    
+    // After DOM update
+    let raf2: number;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        attemptScroll();
+        // Additional attempt after animations
+        setTimeout(attemptScroll, 200);
+      });
+    });
+
+    return () => {
+      clearTimeout(timeout1);
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [messages, isParsing, isSaving, currentQuestion]);
 
   const advanceToNext = async (answer: string, questionId: string, queue: Question[], extracted?: Record<string, any>) => {
     const newAnswers = { ...answers, ...extracted, [questionId]: answer };
@@ -312,6 +351,8 @@ export default function Onboarding() {
       setMessages((prev) => [...prev, { role: "user", content: answer }]);
       setInput("");
       setIsAskingExpert(true);
+      // Trigger scroll after user question
+      setTimeout(() => scrollToBottom(false), 50);
       try {
         const res = await expertMutation.mutateAsync({
           data: {
@@ -397,6 +438,9 @@ export default function Onboarding() {
     setMessages((prev) => [...prev, { role: "user", content: answer }]);
     setInput("");
     setSelected([]);
+    
+    // Trigger immediate scroll after user message
+    setTimeout(() => scrollToBottom(false), 50);
 
     await advanceToNext(finalAnswer, currentQuestion.id, questionQueue, extractedEntities);
   };
@@ -493,7 +537,7 @@ export default function Onboarding() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth min-h-0">
               <AnimatePresence initial={false}>
                 {messages.map((msg, idx) => (
                   <motion.div
@@ -560,7 +604,9 @@ export default function Onboarding() {
                   </div>
                 </motion.div>
               )}
-              <div ref={messagesEndRef} />
+
+              {/* Scroll anchor - element at the bottom to scroll to */}
+              <div ref={messagesEndRef} className="h-0" />
             </div>
 
             {/* Suggestions + Input */}
@@ -656,6 +702,7 @@ export default function Onboarding() {
                 )}
               </div>
             )}
+
           </div>
         </div>
 
