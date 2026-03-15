@@ -11,7 +11,7 @@ import { Navbar } from "@/components/layout/Navbar";
 interface Question {
   id: string;
   text: string;
-  suggestions?: string[];
+  suggestions?: string[] | ((answers: Answers) => string[]);
   multiSelect?: boolean;
   placeholder?: string;
   followUp?: (answer: string) => Question[] | null;
@@ -98,7 +98,18 @@ const BASE_QUESTIONS: Question[] = [
   {
     id: "requirements",
     text: "Which coverages are most important to you? Tap all that apply, then hit send.",
-    suggestions: ["Rental car reimbursement", "Zero deductible", "Roadside assistance", "Flood coverage", "Uninsured motorist", "Gap coverage", "New car replacement"],
+    suggestions: (answers) => {
+      const type = (answers.insuranceType || "auto").toLowerCase();
+      if (type.includes("home") || type.includes("house") || type.includes("rent")) {
+        return ["Flood coverage", "Earthquake coverage", "Personal property", "Liability protection", "Loss of use", "Water backup"];
+      } else if (type.includes("health")) {
+        return ["Dental coverage", "Vision coverage", "Low deductible", "Prescription drugs", "Specialist visits"];
+      } else if (type.includes("life")) {
+        return ["Term life", "Whole life", "Critical illness", "Accidental death", "No medical exam"];
+      } else {
+        return ["Rental car reimbursement", "Zero deductible", "Roadside assistance", "Uninsured motorist", "Gap coverage", "New car replacement"];
+      }
+    },
     multiSelect: true,
     placeholder: "Or describe what you need...",
   },
@@ -127,9 +138,9 @@ function buildProfile(answers: Answers) {
   };
 
   const priorityMap: Record<string, { price: number; coverage: number; rating: number }> = {
-    "cheapest price above all": { price: 70, coverage: 20, rating: 10 },
-    "best coverage above all": { price: 15, coverage: 70, rating: 15 },
-    "highest rated insurer": { price: 20, coverage: 20, rating: 60 },
+    "cheapest price above all": { price: 100, coverage: 0, rating: 0 },
+    "best coverage above all": { price: 0, coverage: 100, rating: 0 },
+    "highest rated insurer": { price: 0, coverage: 0, rating: 100 },
     "balanced — price, coverage, and rating equally": { price: 33, coverage: 34, rating: 33 },
   };
 
@@ -151,7 +162,7 @@ function buildProfile(answers: Answers) {
 
   const requirements = answers.requirements
     ? answers.requirements.split(",").map((r) => r.trim()).filter(Boolean)
-    : ["roadside assistance"];
+    : ["basic coverage"];
 
   let vehicleDetails = undefined;
   if (answers.vehicleMake) {
@@ -163,13 +174,26 @@ function buildProfile(answers: Answers) {
     };
   }
 
+  let matchedPriority = priorityMap["balanced — price, coverage, and rating equally"];
+  if (priorityMap[priorityKey]) {
+    matchedPriority = priorityMap[priorityKey];
+  } else if (priorityKey.includes("balance") || priorityKey.includes("equal")) {
+    matchedPriority = priorityMap["balanced — price, coverage, and rating equally"];
+  } else if (priorityKey.includes("price") || priorityKey.includes("cheap")) {
+    matchedPriority = priorityMap["cheapest price above all"];
+  } else if (priorityKey.includes("coverage") || priorityKey.includes("best")) {
+    matchedPriority = priorityMap["best coverage above all"];
+  } else if (priorityKey.includes("rating") || priorityKey.includes("high")) {
+    matchedPriority = priorityMap["highest rated insurer"];
+  }
+
   return {
     name: answers.name || "Guest",
     age: ageMap[ageKey] || parseInt(answers.age) || 30,
     location: resolvedLocation,
     budgetMonthly: budgetMap[budgetKey] || parseInt((answers.budget || "").replace(/\D/g, "")) || 100,
     insuranceType: insuranceType as "auto" | "home" | "life" | "health" | "renters",
-    priorities: priorityMap[priorityKey] || { price: 33, coverage: 34, rating: 33 },
+    priorities: matchedPriority || { price: 33, coverage: 34, rating: 33 },
     requirements,
     vehicleDetails,
     onboardingComplete: true,
@@ -205,7 +229,7 @@ export default function Onboarding() {
   const [editValue, setEditValue] = useState("");
   const [aiMode, setAiMode] = useState<"auto" | "expert" | "parser">("auto");
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize
   useEffect(() => {
@@ -217,10 +241,8 @@ export default function Onboarding() {
 
   // Auto-scroll
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages, isSaving]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, isSaving, isParsing, currentQuestion]);
 
   const advanceToNext = async (answer: string, questionId: string, queue: Question[], extracted?: Record<string, any>) => {
     const newAnswers = { ...answers, ...extracted, [questionId]: answer };
@@ -330,7 +352,10 @@ export default function Onboarding() {
     let extractedEntities: Record<string, any> | undefined;
 
     if (!currentQuestion.multiSelect) {
-      const isExactMatch = currentQuestion.suggestions?.some(s => s.toLowerCase() === answer.toLowerCase());
+      const suggestionsList = typeof currentQuestion.suggestions === 'function' 
+        ? currentQuestion.suggestions(answers) 
+        : currentQuestion.suggestions;
+      const isExactMatch = suggestionsList?.some(s => s.toLowerCase() === answer.toLowerCase());
 
       if (!isExactMatch) {
         setIsParsing(true);
@@ -349,7 +374,7 @@ export default function Onboarding() {
               { role: "user", content: answer },
               {
                 role: "assistant", 
-                content: currentQuestion.suggestions && currentQuestion.suggestions.length > 0
+                content: suggestionsList && suggestionsList.length > 0
                   ? "I'm sorry, I didn't quite understand that. Could you please clarify or choose one of the options?"
                   : "I'm sorry, I didn't quite catch that. Could you please clarify?",
                 variant: "parser"
@@ -535,33 +560,38 @@ export default function Onboarding() {
                   </div>
                 </motion.div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Suggestions + Input */}
             {!isComplete && currentQuestion && (
               <div className="border-t border-border bg-white p-4 space-y-3">
                 {/* Suggestion chips */}
-                {currentQuestion.suggestions && currentQuestion.suggestions.length > 0 && (
+                {currentQuestion.suggestions && (
                   <div className="flex flex-wrap gap-2">
-                    {currentQuestion.suggestions.map((s) => {
-                      const isActive = selected.includes(s);
-                      return (
-                        <motion.button
-                          key={s}
-                          whileTap={{ scale: 0.96 }}
-                          onClick={() => handleSuggestionClick(s)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${isActive
-                            ? "bg-primary text-white border-primary"
-                            : "bg-white text-foreground border-border hover:border-primary hover:text-primary"
-                            }`}
-                        >
-                          {currentQuestion.multiSelect && isActive && (
-                            <Check size={12} className="inline mr-1" />
-                          )}
-                          {s}
-                        </motion.button>
-                      );
-                    })}
+                    {(() => {
+                      const suggestionsList = typeof currentQuestion.suggestions === 'function' ? currentQuestion.suggestions(answers) : currentQuestion.suggestions;
+                      if (!suggestionsList || suggestionsList.length === 0) return null;
+                      return suggestionsList.map((s) => {
+                        const isActive = selected.includes(s);
+                        return (
+                          <motion.button
+                            key={s}
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => handleSuggestionClick(s)}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${isActive
+                              ? "bg-primary text-white border-primary"
+                              : "bg-white text-foreground border-border hover:border-primary hover:text-primary"
+                              }`}
+                          >
+                            {currentQuestion.multiSelect && isActive && (
+                              <Check size={12} className="inline mr-1" />
+                            )}
+                            {s}
+                          </motion.button>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
 
@@ -626,9 +656,6 @@ export default function Onboarding() {
                 )}
               </div>
             )}
-            {/* Dummy div to scroll to includes the input form now */}
-            <div ref={scrollRef} className="h-4" />
-
           </div>
         </div>
 

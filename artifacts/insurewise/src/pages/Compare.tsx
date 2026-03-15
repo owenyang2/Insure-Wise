@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
-import { Shield, AlertTriangle, Check, SlidersHorizontal, ChevronRight, SearchX, ExternalLink, Star, Layers } from "lucide-react";
+import { Shield, AlertTriangle, Check, SlidersHorizontal, ChevronRight, SearchX, ExternalLink, Star, Layers, Sparkles } from "lucide-react";
 import { useSearchPolicies, useGetUserProfile } from "@workspace/api-client-react";
 import type { PolicyCard } from "@workspace/api-client-react";
 import { useStore } from "@/store/use-store";
@@ -13,7 +13,7 @@ export default function Compare() {
   const { data: profile, isLoading: isProfileLoading } = useGetUserProfile({
     query: {
       enabled: !!userProfileId,
-      queryKey: ["getUserProfile"]
+      queryKey: ["getUserProfile", userProfileId]
     }
   });
 
@@ -25,6 +25,7 @@ export default function Compare() {
   const [priceWeight, setPriceWeight] = useState(33);
   const [coverageWeight, setCoverageWeight] = useState(33);
   const [ratingWeight, setRatingWeight] = useState(34);
+  const [validWeights, setValidWeights] = useState({ price: 33, coverage: 33, rating: 34 });
 
   useEffect(() => {
     if (!userProfileId) {
@@ -37,6 +38,11 @@ export default function Compare() {
       setPriceWeight(profile.priorities.price);
       setCoverageWeight(profile.priorities.coverage);
       setRatingWeight(profile.priorities.rating);
+      setValidWeights({
+        price: profile.priorities.price,
+        coverage: profile.priorities.coverage,
+        rating: profile.priorities.rating
+      });
 
       searchMutation.mutate({
         data: {
@@ -54,23 +60,33 @@ export default function Compare() {
         }
       });
     }
-  }, [profile, hasSearched, searchMutation.isPending]);
+  }, [profile, hasSearched, searchMutation.isPending, userProfileId]);
 
-  // API returns priceScore, coverageScore, ratingScore in 0–1 range; weights are 0–100
-  const totalWeight = priceWeight + coverageWeight + ratingWeight || 1;
+  const currentTotal = priceWeight + coverageWeight + ratingWeight;
+  const isWeightValid = currentTotal === 100;
+
+  useEffect(() => {
+    if (isWeightValid) {
+      setValidWeights({
+        price: priceWeight,
+        coverage: coverageWeight,
+        rating: ratingWeight
+      });
+    }
+  }, [isWeightValid, priceWeight, coverageWeight, ratingWeight]);
 
   // Client-side re-ranking based on sliders (higher weighted score = better)
   const rankedPolicies = useMemo(() => {
     return [...policies].sort((a, b) => {
-      const scoreA = (a.priceScore * priceWeight + a.coverageScore * coverageWeight + a.ratingScore * ratingWeight) / totalWeight;
-      const scoreB = (b.priceScore * priceWeight + b.coverageScore * coverageWeight + b.ratingScore * ratingWeight) / totalWeight;
+      const scoreA = (a.priceScore * validWeights.price + a.coverageScore * validWeights.coverage + a.ratingScore * validWeights.rating) / 100;
+      const scoreB = (b.priceScore * validWeights.price + b.coverageScore * validWeights.coverage + b.ratingScore * validWeights.rating) / 100;
       return scoreB - scoreA;
     });
-  }, [policies, priceWeight, coverageWeight, ratingWeight, totalWeight]);
+  }, [policies, validWeights]);
 
   /** Weighted match score 0–100 for display (API scores are 0–1) */
   const getDisplayScore = (policy: PolicyCard) => {
-    const raw = (policy.priceScore * priceWeight + policy.coverageScore * coverageWeight + policy.ratingScore * ratingWeight) / totalWeight;
+    const raw = (policy.priceScore * validWeights.price + policy.coverageScore * validWeights.coverage + policy.ratingScore * validWeights.rating) / 100;
     return Math.min(100, Math.round(raw * 100));
   };
 
@@ -94,14 +110,29 @@ export default function Compare() {
 
           {/* Sidebar / Filters */}
           <aside className="w-full md:w-80 flex-shrink-0">
-            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm sticky top-24">
-              <div className="flex items-center gap-2 mb-6">
+            <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto custom-scrollbar pr-2 pb-4 space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
                 <SlidersHorizontal className="w-5 h-5 text-primary" />
                 <h2 className="font-bold text-lg">Priority Weights</h2>
               </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                Adjust these sliders to re-rank policies instantly.
-              </p>
+              <div className="flex items-center justify-between mb-8">
+                <div className="h-10 flex items-center mr-2">
+                  {isWeightValid ? (
+                    <p className="text-sm text-muted-foreground">
+                      Adjust sliders to re-rank policies.
+                    </p>
+                  ) : (
+                    <div className="py-2 px-3 bg-red-50 text-red-800 text-xs rounded-lg flex items-center gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-left-2 duration-200">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span className="font-medium">Must sum to 100%</span>
+                    </div>
+                  )}
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 flex-shrink-0 rounded-full transition-colors ${isWeightValid ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                  Total: {currentTotal}%
+                </span>
+              </div>
 
               <div className="space-y-6">
                 <div>
@@ -112,7 +143,7 @@ export default function Compare() {
                   <input
                     type="range" min="0" max="100"
                     value={priceWeight}
-                    onChange={(e) => setPriceWeight(Number(e.target.value))}
+                    onChange={(e) => setPriceWeight(Math.min(Number(e.target.value), 100 - coverageWeight - ratingWeight))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
@@ -124,7 +155,7 @@ export default function Compare() {
                   <input
                     type="range" min="0" max="100"
                     value={coverageWeight}
-                    onChange={(e) => setCoverageWeight(Number(e.target.value))}
+                    onChange={(e) => setCoverageWeight(Math.min(Number(e.target.value), 100 - priceWeight - ratingWeight))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
@@ -136,11 +167,92 @@ export default function Compare() {
                   <input
                     type="range" min="0" max="100"
                     value={ratingWeight}
-                    onChange={(e) => setRatingWeight(Number(e.target.value))}
+                    onChange={(e) => setRatingWeight(Math.min(Number(e.target.value), 100 - priceWeight - coverageWeight))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
               </div>
+            </div>
+
+            {/* ── Captured Details ─────────────────────────────────────────── */}
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-blue-100 shadow-sm flex flex-col">
+              <h2 className="font-bold text-lg text-blue-900 mb-4 flex items-center gap-2 shrink-0">
+                <Sparkles className="w-5 h-5" /> Captured Details
+              </h2>
+              <div className="flex flex-col gap-3">
+                {profile && Object.entries(profile)
+                  .filter(([k, v]) => 
+                    v !== null && 
+                    v !== undefined && 
+                    k !== "id" && 
+                    k !== "createdAt" && 
+                    k !== "updatedAt" && 
+                    k !== "onboardingComplete" &&
+                    k !== "priorities" &&
+                    k !== "vehicleDetails" &&
+                    k !== "propertyDetails" &&
+                    k !== "requirements"
+                  )
+                  .map(([k, v]) => {
+                    let displayValue = "";
+                    if (typeof v === 'object') {
+                      displayValue = JSON.stringify(v);
+                    } else if (typeof v === 'boolean') {
+                      displayValue = v ? "Yes" : "No";
+                    } else {
+                      displayValue = String(v);
+                    }
+
+                    return (
+                      <div key={k} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
+                        <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                          {k.replace(/([A-Z])/g, ' $1').trim()}
+                        </span>
+                        <span className="text-xs font-medium text-blue-950 block capitalize">
+                          {displayValue}
+                        </span>
+                      </div>
+                    );
+                })}
+
+                {profile?.vehicleDetails && Object.entries(profile.vehicleDetails).map(([k, v]) => (
+                    <div key={`vehicle-${k}`} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
+                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                        Vehicle {k.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <span className="text-xs font-medium text-blue-950 block capitalize">
+                        {String(v)}
+                      </span>
+                    </div>
+                ))}
+
+                {profile?.propertyDetails && Object.entries(profile.propertyDetails).map(([k, v]) => (
+                    <div key={`property-${k}`} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
+                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                        Property {k.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <span className="text-xs font-medium text-blue-950 block capitalize">
+                        {String(v)}
+                      </span>
+                    </div>
+                ))}
+
+                {profile?.requirements && profile.requirements.length > 0 && (
+                    <div className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
+                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-1.5">
+                        Requirements
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.requirements.map((req, i) => (
+                          <span key={i} className="text-[10px] font-medium text-blue-950 bg-blue-50 px-2 py-0.5 rounded">
+                            {req}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                )}
+              </div>
+            </div>
             </div>
           </aside>
 
