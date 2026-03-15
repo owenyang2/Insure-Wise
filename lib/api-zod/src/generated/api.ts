@@ -427,3 +427,17 @@ export const AiChatResponse = zod.object({
   isComplete: zod.boolean(),
   nextQuestion: zod.string().optional(),
 });
+
+/**
+ * @summary Uses AI to parse a free-form answer into structured data
+ */
+export const AiParseAnswerBody = zod.object({
+  questionId: zod.string(),
+  questionText: zod.string(),
+  answer: zod.string(),
+});
+
+export const AiParseAnswerResponse = zod.object({
+  parsedValue: zod.string(),
+  extractedEntities: zod.record(zod.string(), zod.unknown()).optional(),
+});

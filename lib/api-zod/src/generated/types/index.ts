@@ -8,6 +8,9 @@
 
 export * from "./aiChatRequest";
 export * from "./aiChatResponse";
+export * from "./aiParseAnswerRequest";
+export * from "./aiParseAnswerResponse";
+export * from "./aiParseAnswerResponseExtractedEntities";
 export * from "./applicationConfirmation";
 export * from "./applicationConfirmationStatus";
 export * from "./applicationField";

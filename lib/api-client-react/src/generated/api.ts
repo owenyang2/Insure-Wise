@@ -19,6 +19,8 @@ import type {
 import type {
   AiChatRequest,
   AiChatResponse,
+  AiParseAnswerRequest,
+  AiParseAnswerResponse,
   ApplicationConfirmation,
   ApplicationForm,
   ErrorResponse,
@@ -710,4 +712,90 @@ export const useAiChat = <
   TContext
 > => {
   return useMutation(getAiChatMutationOptions(options));
+};
+
+/**
+ * @summary Uses AI to parse a free-form answer into structured data
+ */
+export const getAiParseAnswerUrl = () => {
+  return `/api/ai/parse-answer`;
+};
+
+export const aiParseAnswer = async (
+  aiParseAnswerRequest: AiParseAnswerRequest,
+  options?: RequestInit,
+): Promise<AiParseAnswerResponse> => {
+  return customFetch<AiParseAnswerResponse>(getAiParseAnswerUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiParseAnswerRequest),
+  });
+};
+
+export const getAiParseAnswerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    TError,
+    { data: BodyType<AiParseAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiParseAnswer>>,
+  TError,
+  { data: BodyType<AiParseAnswerRequest> },
+  TContext
+> => {
+  const mutationKey = ["aiParseAnswer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    { data: BodyType<AiParseAnswerRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiParseAnswer(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiParseAnswerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiParseAnswer>>
+>;
+export type AiParseAnswerMutationBody = BodyType<AiParseAnswerRequest>;
+export type AiParseAnswerMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Uses AI to parse a free-form answer into structured data
+ */
+export const useAiParseAnswer = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiParseAnswer>>,
+    TError,
+    { data: BodyType<AiParseAnswerRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiParseAnswer>>,
+  TError,
+  { data: BodyType<AiParseAnswerRequest> },
+  TContext
+> => {
+  return useMutation(getAiParseAnswerMutationOptions(options));
 };
