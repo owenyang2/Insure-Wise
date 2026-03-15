@@ -433,14 +433,26 @@ router.post("/ai/parse-answer", async (req, res): Promise<void> => {
 The user was asked: "${questionText}"
 The user's free-form answer was: "${answer}"
 
+CRITICAL RULES - FILTER OUT IRRELEVANT INFORMATION:
+- IGNORE any off-topic comments, personal preferences, or unrelated information (e.g., "I love pizza", "I'm hungry", "The weather is nice", etc.)
+- ONLY extract information that is DIRECTLY relevant to answering the question
+- If the answer contains BOTH relevant and irrelevant information, extract ONLY the relevant part
+- If the answer contains ONLY irrelevant information with no answer to the question, set 'parsedValue' to null
+- Examples:
+  * Question: "What's your name?" Answer: "John, I love pizza" → parsedValue: "John" (ignore "I love pizza")
+  * Question: "What's your name?" Answer: "I love pizza" → parsedValue: null (no name provided)
+  * Question: "What's your vehicle?" Answer: "Honda Civic, I love pizza" → parsedValue: "Honda Civic" (ignore "I love pizza")
+  * Question: "What's your age?" Answer: "25, I love pizza" → parsedValue: "25" (ignore "I love pizza")
+
 Your job is to extract the core intended answer to the question (parsedValue) and any additional details (extractedEntities).
-- For 'parsedValue', format it cleanly (e.g., if asked for insurance type and they said "I need coverage for my car", parsedValue is "Auto").
-- IMPORTANT: If the user says "I don't know", "not sure", or provides an ambiguous/unhelpful answer, you MUST set 'parsedValue' to null. Do not guess or assume.
-- For 'extractedEntities', include any other useful details found in their answer. You MUST use EXACTLY these keys if applicable: 'insuranceType', 'vehicleYear', 'vehicleMake', 'vehicleModel', 'budgetMonthly', 'propertyType', 'age', 'name', 'location'. (e.g. if they say "I have a 1999 tesla", extractedEntities should be {"vehicleYear": "1999", "vehicleMake": "Tesla"}).
+- For 'parsedValue', format it cleanly and ONLY include the answer to the question (e.g., if asked for insurance type and they said "I need coverage for my car", parsedValue is "Auto").
+- IMPORTANT: If the user says "I don't know", "not sure", provides only irrelevant information, or provides an ambiguous/unhelpful answer, you MUST set 'parsedValue' to null. Do not guess or assume.
+- For 'extractedEntities', include any other useful details found in their answer that are RELEVANT to insurance onboarding. You MUST use EXACTLY these keys if applicable: 'insuranceType', 'vehicleYear', 'vehicleMake', 'vehicleModel', 'budgetMonthly', 'propertyType', 'age', 'name', 'location'. (e.g. if they say "I have a 1999 tesla", extractedEntities should be {"vehicleYear": "1999", "vehicleMake": "Tesla"}).
+- DO NOT include irrelevant information in extractedEntities (e.g., don't include "pizza" or "food preferences" or any non-insurance-related data).
 
 Respond ONLY with valid JSON in this exact format:
 {
-  "parsedValue": "The structured answer to the question",
+  "parsedValue": "The structured answer to the question (ONLY relevant information, no off-topic comments)",
   "extractedEntities": {
     "key": "value"
   }

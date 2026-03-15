@@ -302,6 +302,61 @@ export default function Onboarding() {
       if (!answer) return;
     }
 
+    // Strict validation for vehicleMake - must be [Company Name] [Car Name] format
+    if (currentQuestion.id === "vehicleMake") {
+      const words = answer.trim().split(/\s+/).filter(w => w.length > 0);
+      if (words.length < 2) {
+        // Invalid format - only one word provided
+        setMessages((prev) => [
+          ...prev,
+          { role: "user", content: answer },
+          {
+            role: "assistant",
+            content: "I need both the company name and car model in the format [Company] [Model]. For example, 'Honda Civic' or 'Toyota Camry'. Please provide the complete vehicle name.",
+          },
+        ]);
+        setInput("");
+        setSelected([]);
+        return; // Don't proceed - stay on same question
+      }
+
+      // Validate via AI to ensure it's a proper [Company] [Model] format
+      try {
+        const validationResponse = await fetch("/api/onboarding/validate-answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionId: "vehicleMake",
+            questionText: currentQuestion.text,
+            answer,
+            previousAnswers: answers,
+          }),
+        });
+
+        if (validationResponse.ok) {
+          const validation = await validationResponse.json();
+          if (!validation.isValid || validation.shouldAskAgain) {
+            // AI detected invalid format
+            setMessages((prev) => [
+              ...prev,
+              { role: "user", content: answer },
+              {
+                role: "assistant",
+                content: validation.reason || validation.message || "Please provide both the company name and car model, e.g., 'Honda Civic' or 'Toyota Camry'.",
+              },
+            ]);
+            setInput("");
+            setSelected([]);
+            return; // Don't proceed - stay on same question
+          }
+        }
+      } catch (err) {
+        console.error("Validation error:", err);
+        // If validation API fails, still check word count as fallback
+        // (already checked above, so proceed)
+      }
+    }
+
     let finalAnswer = answer;
     let extractedEntities: Record<string, any> | undefined;
 
