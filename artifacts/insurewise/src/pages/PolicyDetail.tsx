@@ -46,7 +46,7 @@ export default function PolicyDetail() {
         <main className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center text-center">
             <FileText className="w-16 h-16 text-primary animate-pulse mb-4" />
-            <h2 className="text-xl font-bold font-display">AI reading 50+ page policy document...</h2>
+            <h2 className="text-xl font-bold font-display">Analyzing your policy...</h2>
             <p className="text-muted-foreground mt-2">Extracting coverage terms and analyzing gaps.</p>
           </div>
         </main>
@@ -100,32 +100,12 @@ export default function PolicyDetail() {
                     <div>
                       <h4 className="font-bold text-lg text-foreground mb-1">{item.requirement}</h4>
                       <p className="text-muted-foreground mb-2">{item.explanation}</p>
-                      {item.policyClause && (
-                        <div className="text-sm bg-white p-3 rounded-lg border border-border font-mono text-gray-600 mt-2">
-                          <span className="font-bold text-gray-400 uppercase text-xs block mb-1">Policy Clause</span>
-                          "{item.policyClause}"
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                 ))}
               </div>
             </section>
 
-            {/* Gap Analysis */}
-            {data.gaps.length > 0 && (
-              <section>
-                <h2 className="text-2xl font-bold font-display mb-6 border-b border-border pb-2 text-red-600">Critical Gaps Discovered</h2>
-                <ul className="space-y-3">
-                  {data.gaps.map((gap, idx) => (
-                    <li key={idx} className="flex items-start gap-3 bg-red-50 p-4 rounded-xl border border-red-100">
-                      <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-red-900">{gap}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
 
             {/* Key Terms */}
             <section>

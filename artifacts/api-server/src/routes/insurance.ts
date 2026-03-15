@@ -508,7 +508,6 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
         requirement: req,
         status: match[1].status,
         explanation: match[1].details,
-        policyClause: `Section covering ${match[0]}`,
         confidence: 0.9,
       };
     }
@@ -516,7 +515,6 @@ router.post("/insurance/policies/:policyId/explain", async (req, res): Promise<v
       requirement: req,
       status: "not_covered" as const,
       explanation: `${req} is not covered under this policy`,
-      policyClause: "N/A",
       confidence: 0.7,
     };
   });
