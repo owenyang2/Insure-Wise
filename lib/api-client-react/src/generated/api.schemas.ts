@@ -5,6 +5,28 @@
  * InsureWise API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface HandoffRequest {
+  userProfileId: number;
+  policyId: string;
+  planName: string;
+  monthlyPremium: number;
+}
+
+export type HandoffResultStatus =
+  (typeof HandoffResultStatus)[keyof typeof HandoffResultStatus];
+
+export const HandoffResultStatus = {
+  success: "success",
+  fallback: "fallback",
+} as const;
+
+export interface HandoffResult {
+  status: HandoffResultStatus;
+  checkoutUrl: string;
+  expiresIn?: number;
+  message?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }

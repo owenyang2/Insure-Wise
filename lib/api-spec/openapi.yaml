@@ -17,6 +17,25 @@ tags:
     description: AI-powered policy explanation and chat
 
 paths:
+  /checkout/handoff:
+    post:
+      operationId: initiateCarrierHandoff
+      tags: [checkout]
+      summary: Initiate automated carrier form handoff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffRequest"
+      responses:
+        "200":
+          description: Carrier handoff result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffResult"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -195,6 +214,39 @@ paths:
 
 components:
   schemas:
+    HandoffRequest:
+      type: object
+      properties:
+        userProfileId:
+          type: integer
+        policyId:
+          type: string
+        planName:
+          type: string
+        monthlyPremium:
+          type: number
+      required:
+        - userProfileId
+        - policyId
+        - planName
+        - monthlyPremium
+
+    HandoffResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, fallback]
+        checkoutUrl:
+          type: string
+        expiresIn:
+          type: integer
+        message:
+          type: string
+      required:
+        - status
+        - checkoutUrl
+
     HealthStatus:
       type: object
       properties:

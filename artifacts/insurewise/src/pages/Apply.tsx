@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useRoute, useLocation } from "wouter";
 import { ShieldCheck, Edit2, Loader2, Sparkles } from "lucide-react";
-import { useGetApplicationForm, useSubmitApplication } from "@workspace/api-client-react";
+import { useGetApplicationForm, useSubmitApplication, useInitiateCarrierHandoff } from "@workspace/api-client-react";
 import type { ApplicationField } from "@workspace/api-client-react";
 import { useStore } from "@/store/use-store";
 import { Navbar } from "@/components/layout/Navbar";
+import { HandoffOverlay } from "@/components/ui/HandoffOverlay";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Apply() {
@@ -18,8 +19,11 @@ export default function Apply() {
   
   const formMutation = useGetApplicationForm();
   const submitMutation = useSubmitApplication();
+  const handoffMutation = useInitiateCarrierHandoff();
   
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [isHandingOff, setIsHandingOff] = useState(false);
+  const [insurerName, setInsurerName] = useState("");
 
   useEffect(() => {
     if (!userProfileId) {
@@ -49,28 +53,43 @@ export default function Apply() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!policyId || !userProfileId) return;
+    if (!policyId || !userProfileId || !formMutation.data) return;
+
+    setIsHandingOff(true);
+    setInsurerName(formMutation.data.insurerName);
 
     const fields = Object.entries(formData).map(([fieldId, value]) => ({ fieldId, value }));
 
-    submitMutation.mutate({
-      data: {
-        policyId,
-        userProfileId,
-        fields
+    Promise.all([
+      submitMutation.mutateAsync({
+        data: {
+          policyId,
+          userProfileId,
+          fields
+        }
+      }),
+      handoffMutation.mutateAsync({
+        data: {
+          userProfileId: parseInt(userProfileId, 10),
+          policyId,
+          planName: formMutation.data.planName,
+          monthlyPremium: formMutation.data.monthlyPremium
+        }
+      })
+    ]).then(([submitRes, handoffRes]) => {
+      setConfirmationData(submitRes);
+      if (handoffRes.checkoutUrl) {
+        window.open(handoffRes.checkoutUrl, '_blank');
       }
-    }, {
-      onSuccess: (res) => {
-        setConfirmationData(res);
-        setLocation("/confirmation");
-      },
-      onError: () => {
-        toast({
-          title: "Error submitting application",
-          description: "Please check the fields and try again.",
-          variant: "destructive"
-        });
-      }
+      setLocation("/confirmation");
+    }).catch(() => {
+      toast({
+        title: "Error submitting application",
+        description: "Please check the fields and try again.",
+        variant: "destructive"
+      });
+    }).finally(() => {
+      setIsHandingOff(false);
     });
   };
 
@@ -174,6 +193,7 @@ export default function Apply() {
           </div>
         </form>
       </main>
+      <HandoffOverlay isVisible={isHandingOff} insurerName={insurerName} />
     </div>
   );
 }

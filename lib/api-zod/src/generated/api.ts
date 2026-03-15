@@ -8,6 +8,23 @@
 import * as zod from "zod";
 
 /**
+ * @summary Initiate automated carrier form handoff
+ */
+export const InitiateCarrierHandoffBody = zod.object({
+  userProfileId: zod.number(),
+  policyId: zod.string(),
+  planName: zod.string(),
+  monthlyPremium: zod.number(),
+});
+
+export const InitiateCarrierHandoffResponse = zod.object({
+  status: zod.enum(["success", "fallback"]),
+  checkoutUrl: zod.string(),
+  expiresIn: zod.number().optional(),
+  message: zod.string().optional(),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */
