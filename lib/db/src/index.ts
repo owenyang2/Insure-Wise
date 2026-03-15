@@ -16,3 +16,4 @@ export const db = drizzle(pool, { schema });
 
 export * from "./schema";
 export * from "./schema/applications";
+export * from "./schema/quoteResults";
