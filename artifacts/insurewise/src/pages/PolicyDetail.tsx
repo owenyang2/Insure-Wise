@@ -128,8 +128,6 @@ export default function PolicyDetail() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
         <div className="container mx-auto px-4 py-4 max-w-5xl flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-muted-foreground">Ready to proceed?</p>
-            <p className="text-xs text-gray-500">We'll auto-fill your application next.</p>
           </div>
           <Link 
             href="/profile"
