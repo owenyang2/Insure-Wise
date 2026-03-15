@@ -276,7 +276,7 @@ export default function Onboarding() {
       if (!answer) return;
     }
 
-    // Determine if we should route to Moorcheh (Expert) or Anthropic (Parser)
+    // Determine if we should route to Moorcheh (Expert) or Parser
     let isQuestion = false;
     if (aiMode === "expert") {
       isQuestion = true;

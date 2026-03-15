@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { Router, type IRouter } from "express";
 import { z } from "zod";
-import { openai, AI_MODEL } from "@workspace/integrations-anthropic-ai";
+import { openai, AI_MODEL } from "../lib/ai.js";
 import { schemas } from "@workspace/api-zod";
 const { SearchPoliciesBody, ExplainPolicyBody, GetApplicationFormBody, SubmitApplicationBody, AiParseAnswerBody, AskExpertBody } = schemas;
 import { db, userProfilesTable, applicationsTable } from "@workspace/db";

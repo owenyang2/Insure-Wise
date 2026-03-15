@@ -37,7 +37,6 @@ An AI-powered insurance comparison and purchase platform. Users go through a con
 - **pnpm** v9+ — install with `npm install -g pnpm`, or use `npx pnpm` in place of `pnpm` for every command below.
 - **PostgreSQL** — local (see below) or a hosted DB (e.g. [Neon](https://neon.tech), [Supabase](https://supabase.com)).
 - **Python 3.10+** - required to run the Moorcheh SDK backend workers.
-- **Anthropic API key** — optional for basic run; needed for Optimizer and Policy Explainer. Get one at [console.anthropic.com](https://console.anthropic.com).
 - **Moorcheh API Key** — mandatory for the Insurance Knowledge Assistant RAG workflows. Get one at [console.moorcheh.ai](https://console.moorcheh.ai/api-keys).
 
 ### 1. Clone and install
@@ -152,6 +151,12 @@ npx concurrently \
 - **Node version / Vite errors** — Use Node 20.19+ or 22.12+: `nvm install 22 && nvm use 22`.
 - **"Cannot find native binding" or missing `@rollup/rollup-darwin-arm64` (and similar)** — The workspace allows Mac binaries; do a clean reinstall: `rm -rf node_modules && pnpm install`.
 
+**Moorcheh (Knowledge Assistant / ask-expert):**
+- **API key** — In `artifacts/api-server/.env` set `MOORCHEH_API_KEY` to a valid key from [console.moorcheh.ai](https://console.moorcheh.ai/api-keys). If it’s missing or wrong, the UI will show the error when you use the expert (e.g. "Missing MOORCHEH_API_KEY" or the Moorcheh API message).
+- **Python** — The server spawns `python3` to run `artifacts/api-server/src/python-workers/moorcheh.py`. Use Python 3.10+ and install deps: `pip install -r artifacts/api-server/src/python-workers/requirements.txt`.
+- **Seed the knowledge base** — Run once (and after changing docs): `python scripts/seed-moorcheh.py`. This creates the `insurewise-knowledge` namespace and uploads the mock insurance docs. If the namespace or docs are missing, answers may be empty or generic.
+- **Path** — The API server runs with its working directory as `artifacts/api-server`, so the script path is `src/python-workers/moorcheh.py` relative to that. If you run the server from elsewhere, ensure the worker path is still correct.
+
 ---
 
 ## Project Structure
@@ -173,7 +178,6 @@ npx concurrently \
 │   ├── api-client-react/    # Auto-generated React Query hooks
 │   ├── api-zod/             # Auto-generated Zod schemas
 │   ├── db/                  # Drizzle ORM schema + connection
-│   └── integrations-anthropic-ai/  # Anthropic client wrapper
 ```
 
 ## API Endpoints
@@ -208,5 +212,5 @@ pnpm --filter @workspace/api-spec run codegen
 
 - **Session identity** is managed via the `x-session-id` request header. The frontend assigns a UUID per browser session stored in localStorage.
 - **Policy data** is mocked in `artifacts/api-server/src/lib/mockPolicies.ts` — 5 auto policies and 1 home policy with full coverage maps and scoring logic.
-- **The Optimizer and Policy Explainer** both make live calls to Claude Haiku, so they require a valid Anthropic API key even in development.
+- **The Optimizer and Policy Explainer** use the configured AI model (GPT-OSS 120B by default via Hugging Face; override with `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `AI_MODEL` for OpenAI or another OpenAI-compatible endpoint).
 - **The Knowledge Assistant** uses the Python `moorcheh-sdk` to execute semantic document retrieval, requiring Python `3.10`+ to be installed locally to successfully spawn the child worker processes locally.
