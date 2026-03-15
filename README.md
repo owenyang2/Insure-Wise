@@ -1,19 +1,19 @@
+
 # InsureWise
 
-An AI-powered insurance comparison and purchase platform. Users go through a conversational onboarding flow, get ranked policy recommendations, receive plain-language AI explanations of coverage, and can auto-fill and submit applications — all in one place.
+InsureWise is an AI-powered insurance comparison and recommendation platform. Users go through a conversational onboarding flow, get ranked policy recommendations, and receive plain-language AI explanations of coverage. The platform helps users find and prepare to apply for the best-fit insurance options.
 
 ## Features
 
-- **AI Onboarding Chat** — structured question flow that captures your profile with tappable answer chips
+- **AI Onboarding Chat** — Structured question flow that captures your profile with tappable answer chips
 - **Dual AI Engine Routing**:
-  - **OpenAI Parser (Form Extraction)** — parses your conversational text to extract exact structured JSON form answers (e.g. converting "I drive a 2012 honda" into `{"vehicleMake": "Honda", "vehicleYear": 2012}`) using GPT-OSS 120B.
-  - **Moorcheh Knowledge Assistant (RAG)** — a dedicated Python-based semantic memory vector engine that acts as a sidebar expert. If you ask a question during onboarding (e.g. "What does comprehensive cover?"), the request is instantly routed to the Moorcheh SDK worker to pull factual data from the seeded knowledge base without disrupting your application flow.
-  - **Manual UI Override** — A segmented control toggle on the chat screen lets you force the bot into "Auto", "Moorcheh Expert", or "OpenAI Parser" modes to explicitly demonstrate each engine during the hackathon.
-- **Policy Comparison** — priority-weighted ranking across 5 auto + 1 home policy (price / coverage / rating sliders)
-- **AI Policy Explainer** — plain-language breakdown of what's covered, partially covered, and missing
-- **Auto-Fill Applications** — pre-populated forms from your profile data
-- **Premium Optimizer** — hyper-specific AI tips to lower your premium (location, credit score, deductible, bundling, etc.)
-- **Profile Management** — edit your details and re-run the optimizer at any time
+  - **OpenAI Parser (Form Extraction):** Parses your conversational text to extract structured JSON form answers using GPT-OSS 120B.
+  - **Moorcheh Knowledge Assistant (RAG):** A Python-based semantic memory engine that acts as a sidebar expert. If you ask a question during onboarding (e.g. "What does comprehensive cover?"), the request is routed to the Moorcheh SDK worker to pull factual data from the seeded knowledge base.
+  - **Manual UI Override:** A segmented control toggle on the chat screen lets you force the bot into "Auto", "Moorcheh Expert", or "OpenAI Parser" modes.
+- **Policy Comparison** — Priority-weighted ranking across 3 policies (price, coverage, and rating sliders)
+- **AI Policy Explainer** — Plain-language breakdown of what's covered, partially covered, and missing
+- **Premium Optimizer** — AI tips to lower your premium (location, credit score, deductible, bundling, etc.)
+- **Profile Management** — Edit your details and re-run the optimizer at any time
 
 ## Tech Stack
 
