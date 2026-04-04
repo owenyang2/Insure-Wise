@@ -116,13 +116,13 @@ export default function Apply() {
           <p className="text-muted-foreground text-lg">Application for {appForm.insurerName} - {appForm.planName}</p>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-8 border border-blue-100 flex items-start gap-4">
+        <div className="bg-primary/5 rounded-2xl p-6 mb-8 border border-primary/20 flex items-start gap-4">
           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
             <Sparkles className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-bold text-blue-900 mb-1">AI Magic Fill Active</h3>
-            <p className="text-sm text-blue-800">
+            <h3 className="font-bold text-primary mb-1">AI Magic Fill Active</h3>
+            <p className="text-sm text-foreground">
               We've pre-filled {appForm.autoFilledCount} out of {appForm.totalFieldCount} fields using context from your chat session. Please review the details below.
             </p>
           </div>
@@ -130,16 +130,16 @@ export default function Apply() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {appForm.sections.map((section, sIdx) => (
-            <div key={sIdx} className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 border-b border-border">
+            <div key={sIdx} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+              <div className="px-6 py-4 bg-muted/50 border-b border-border">
                 <h3 className="font-bold text-lg text-foreground">{section.title}</h3>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {section.fields.map((field) => (
                   <div key={field.fieldId} className={field.fieldType === 'text' ? 'col-span-1 md:col-span-2' : ''}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center justify-between">
+                    <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center justify-between">
                       {field.label}
-                      {!field.editable && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">Verified</span>}
+                      {!field.editable && <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Verified</span>}
                     </label>
                     <div className="relative">
                       {field.fieldType === 'select' && field.options ? (
@@ -148,7 +148,7 @@ export default function Apply() {
                           onChange={(e) => handleFieldChange(field.fieldId, e.target.value)}
                           disabled={!field.editable}
                           required={field.required}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:bg-gray-50 disabled:text-gray-500 appearance-none"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:bg-muted disabled:text-muted-foreground appearance-none"
                         >
                           <option value="" disabled>Select option</option>
                           {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -160,7 +160,7 @@ export default function Apply() {
                           onChange={(e) => handleFieldChange(field.fieldId, e.target.value)}
                           disabled={!field.editable}
                           required={field.required}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:bg-gray-50 disabled:text-gray-500"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:bg-muted disabled:text-muted-foreground"
                         />
                       )}
                       {field.editable && (
@@ -173,7 +173,7 @@ export default function Apply() {
             </div>
           ))}
 
-          <div className="bg-white rounded-2xl p-6 md:p-8 border border-border shadow-lg shadow-black/5 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="bg-card rounded-2xl p-6 md:p-8 border border-border shadow-lg shadow-black/20 flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Due Today</p>
               <p className="text-4xl font-bold text-foreground">${appForm.monthlyPremium}<span className="text-lg text-muted-foreground font-normal">/mo</span></p>

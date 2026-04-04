@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Outfit:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -6,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'DM Sans', sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-sans: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  --font-display: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -50,54 +49,54 @@
 }
 
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0, 255, 65, .15);
+  --badge-outline: rgba(0, 255, 65, .08);
 
   --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0, 255, 65, .03);
+  --elevate-2: rgba(0, 255, 65, .08);
 
-  /* Calm Blue Theme */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
-  
-  --primary: 221 83% 53%; /* Blue 600 */
-  --primary-foreground: 210 40% 98%;
-  
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222 47% 11%;
-  
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
-  
-  --accent: 214 32% 91%;
-  --accent-foreground: 222 47% 11%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 221 83% 53%;
+  /* Terminal Theme — green on black */
+  --background: 160 20% 4%;          /* near-black with slight green tint */
+  --foreground: 120 60% 80%;         /* soft green text */
 
-  --radius: 0.75rem;
+  --card: 160 15% 7%;                /* slightly lighter dark panel */
+  --card-foreground: 120 60% 80%;
+  --card-border: 120 40% 16%;
 
-  --shadow-2xs: 0px 1px 2px 0px rgba(15, 23, 42, 0.05);
-  --shadow-xs: 0px 1px 3px 0px rgba(15, 23, 42, 0.1);
-  --shadow-sm: 0px 2px 4px 0px rgba(15, 23, 42, 0.1);
-  --shadow: 0px 4px 6px -1px rgba(15, 23, 42, 0.1), 0px 2px 4px -1px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0px 10px 15px -3px rgba(15, 23, 42, 0.1), 0px 4px 6px -2px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0px 20px 25px -5px rgba(15, 23, 42, 0.1), 0px 10px 10px -5px rgba(15, 23, 42, 0.04);
-  --shadow-xl: 0px 25px 50px -12px rgba(15, 23, 42, 0.25);
-  --shadow-2xl: 0px 35px 60px -15px rgba(15, 23, 42, 0.3);
+  --popover: 160 15% 7%;
+  --popover-foreground: 120 60% 80%;
+  --popover-border: 120 40% 16%;
+
+  --primary: 120 100% 40%;           /* terminal green */
+  --primary-foreground: 160 20% 4%;  /* black text on green */
+
+  --secondary: 160 15% 10%;          /* dark surface */
+  --secondary-foreground: 120 60% 75%;
+
+  --muted: 160 12% 12%;
+  --muted-foreground: 120 20% 50%;
+
+  --accent: 120 40% 16%;
+  --accent-foreground: 120 60% 80%;
+
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 120 30% 14%;
+  --input: 120 30% 14%;
+  --ring: 120 100% 40%;
+
+  --radius: 0.5rem;
+
+  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+  --shadow-xs: 0px 1px 3px 0px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
+  --shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.5), 0px 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0px 10px 15px -3px rgba(0, 0, 0, 0.5), 0px 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0px 20px 25px -5px rgba(0, 0, 0, 0.5), 0px 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --shadow-2xl: 0px 35px 60px -15px rgba(0, 0, 0, 0.7);
 
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)));
@@ -118,5 +117,52 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply font-bold tracking-tight;
+  }
+
+  /* Terminal cursor blink for inputs */
+  input:focus, textarea:focus, select:focus {
+    caret-color: hsl(120 100% 40%);
+  }
+
+  /* Custom scrollbar to match theme */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(160 15% 7%);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(120 30% 20%);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(120 40% 30%);
+  }
+
+  /* Range slider styling for terminal theme */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: hsl(120 30% 14%);
+    border-radius: 3px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: hsl(120 100% 40%);
+    cursor: pointer;
+    border: 2px solid hsl(160 20% 4%);
+  }
+
+  /* Selection color */
+  ::selection {
+    background: hsla(120, 100%, 40%, 0.3);
+    color: hsl(120, 100%, 80%);
   }
 }

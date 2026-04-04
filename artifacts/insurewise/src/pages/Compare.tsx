@@ -117,7 +117,7 @@ export default function Compare() {
           {/* Sidebar / Filters */}
           <aside className="w-full md:w-80 flex-shrink-0">
             <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto custom-scrollbar pr-2 pb-4 space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-sm">
+              <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <SlidersHorizontal className="w-5 h-5 text-primary" />
                 <h2 className="font-bold text-lg">Priority Weights</h2>
@@ -129,13 +129,13 @@ export default function Compare() {
                       Adjust sliders to re-rank policies.
                     </p>
                   ) : (
-                    <div className="py-2 px-3 bg-red-50 text-red-800 text-xs rounded-lg flex items-center gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-left-2 duration-200">
+                    <div className="py-2 px-3 bg-destructive/10 text-destructive text-xs rounded-lg flex items-center gap-2 border border-destructive/20 shadow-sm animate-in fade-in slide-in-from-left-2 duration-200">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
                       <span className="font-medium">Must sum to 100%</span>
                     </div>
                   )}
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 flex-shrink-0 rounded-full transition-colors ${isWeightValid ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                <span className={`text-xs font-bold px-2 py-1 flex-shrink-0 rounded-full transition-colors ${isWeightValid ? 'bg-primary/15 text-primary' : 'bg-destructive/15 text-destructive'}`}>
                   Total: {currentTotal}%
                 </span>
               </div>
@@ -150,7 +150,7 @@ export default function Compare() {
                     type="range" min="0" max="100"
                     value={priceWeight}
                     onChange={(e) => setPriceWeight(Math.min(Number(e.target.value), 100 - coverageWeight - ratingWeight))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
                 <div>
@@ -162,7 +162,7 @@ export default function Compare() {
                     type="range" min="0" max="100"
                     value={coverageWeight}
                     onChange={(e) => setCoverageWeight(Math.min(Number(e.target.value), 100 - priceWeight - ratingWeight))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
                 <div>
@@ -174,16 +174,16 @@ export default function Compare() {
                     type="range" min="0" max="100"
                     value={ratingWeight}
                     onChange={(e) => setRatingWeight(Math.min(Number(e.target.value), 100 - priceWeight - coverageWeight))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
               </div>
             </div>
 
             {/* ── Captured Details ─────────────────────────────────────────── */}
-            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-blue-100 shadow-sm flex flex-col">
-              <h2 className="font-bold text-lg text-blue-900 mb-4 flex items-center gap-2 shrink-0">
-                <Sparkles className="w-5 h-5" /> Captured Details
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-sm flex flex-col">
+              <h2 className="font-bold text-lg text-primary mb-4 flex items-center gap-2 shrink-0">
+                <Sparkles className="w-5 h-5" /> captured_details
               </h2>
               <div className="flex flex-col gap-3">
                 {profile && Object.entries(profile)
@@ -210,11 +210,11 @@ export default function Compare() {
                     }
 
                     return (
-                      <div key={k} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
-                        <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                      <div key={k} className="bg-background rounded-lg p-3 shadow-sm border border-border">
+                        <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-wider block mb-0.5">
                           {k.replace(/([A-Z])/g, ' $1').trim()}
                         </span>
-                        <span className="text-xs font-medium text-blue-950 block capitalize">
+                        <span className="text-xs font-medium text-foreground block capitalize">
                           {displayValue}
                         </span>
                       </div>
@@ -222,35 +222,35 @@ export default function Compare() {
                 })}
 
                 {profile?.vehicleDetails && Object.entries(profile.vehicleDetails).map(([k, v]) => (
-                    <div key={`vehicle-${k}`} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
-                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                    <div key={`vehicle-${k}`} className="bg-background rounded-lg p-3 shadow-sm border border-border">
+                      <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-wider block mb-0.5">
                         Vehicle {k.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
-                      <span className="text-xs font-medium text-blue-950 block capitalize">
+                      <span className="text-xs font-medium text-foreground block capitalize">
                         {String(v)}
                       </span>
                     </div>
                 ))}
 
                 {profile?.propertyDetails && Object.entries(profile.propertyDetails).map(([k, v]) => (
-                    <div key={`property-${k}`} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
-                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-0.5">
+                    <div key={`property-${k}`} className="bg-background rounded-lg p-3 shadow-sm border border-border">
+                      <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-wider block mb-0.5">
                         Property {k.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
-                      <span className="text-xs font-medium text-blue-950 block capitalize">
+                      <span className="text-xs font-medium text-foreground block capitalize">
                         {String(v)}
                       </span>
                     </div>
                 ))}
 
                 {profile?.requirements && profile.requirements.length > 0 && (
-                    <div className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50">
-                      <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider block mb-1.5">
+                    <div className="bg-background rounded-lg p-3 shadow-sm border border-border">
+                      <span className="text-[10px] font-semibold text-primary/60 uppercase tracking-wider block mb-1.5">
                         Requirements
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {profile.requirements.map((req, i) => (
-                          <span key={i} className="text-[10px] font-medium text-blue-950 bg-blue-50 px-2 py-0.5 rounded">
+                          <span key={i} className="text-[10px] font-medium text-foreground bg-primary/10 px-2 py-0.5 rounded">
                             {req}
                           </span>
                         ))}
@@ -270,7 +270,7 @@ export default function Compare() {
             </div>
 
             {rankedPolicies.length === 0 ? (
-              <div className="bg-white rounded-2xl p-12 text-center border border-border">
+              <div className="bg-card rounded-2xl p-12 text-center border border-border">
                 <SearchX className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-xl font-bold mb-2">No policies found</h3>
                 <p className="text-muted-foreground">Try adjusting your requirements or budget.</p>
@@ -281,10 +281,10 @@ export default function Compare() {
                   const score = getDisplayScore(policy);
 
                   return (
-                    <div key={policy.id} className="bg-white rounded-2xl border border-border shadow-md shadow-black/5 hover:shadow-xl hover:border-primary/30 transition-all duration-300 overflow-hidden">
+                    <div key={policy.id} className="bg-card rounded-2xl border border-border shadow-md shadow-black/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300 overflow-hidden">
                       {idx === 0 && (
-                        <div className="bg-gradient-to-r from-primary to-indigo-500 px-4 py-1.5 text-center">
-                          <span className="text-xs font-bold text-white uppercase tracking-wider">Best Overall Match</span>
+                        <div className="bg-primary px-4 py-1.5 text-center">
+                          <span className="text-xs font-bold text-primary-foreground uppercase tracking-wider">&gt; BEST OVERALL MATCH</span>
                         </div>
                       )}
 
@@ -292,7 +292,7 @@ export default function Compare() {
                         {/* Insurer Info */}
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-3">
-                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-xl text-primary">
+                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center font-bold text-xl text-primary">
                               {policy.insurerName.charAt(0)}
                             </div>
                             <div>
@@ -303,15 +303,15 @@ export default function Compare() {
 
                           <div className="flex flex-wrap gap-2 mt-4">
                             {policy.gapCount === 0 ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-sm font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-sm font-medium">
                                 <Check className="w-4 h-4" /> No Coverage Gaps
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-sm font-medium">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent text-foreground text-sm font-medium">
                                 <AlertTriangle className="w-4 h-4" /> {policy.gapCount} Coverage Gaps
                               </span>
                             )}
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm font-medium" title="Amount you pay out of pocket before insurance pays. Lower deductible usually means higher premium.">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted text-foreground text-sm font-medium" title="Amount you pay out of pocket before insurance pays. Lower deductible usually means higher premium.">
                               <Shield className="w-4 h-4" /> ${policy.deductible} Deductible
                             </span>
                           </div>
@@ -319,7 +319,7 @@ export default function Compare() {
                           {/* Rating & Coverage — so users see relative ratings */}
                           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
                             <div className="flex items-center gap-1.5" title="Insurer rating (out of 5)">
-                              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                              <Star className="w-4 h-4 fill-primary text-primary" />
                               <span className="font-semibold text-foreground">{policy.overallRating.toFixed(1)}</span>
                               <span className="text-muted-foreground">/ 5</span>
                               {policy.reviewCount > 0 && (
@@ -350,12 +350,12 @@ export default function Compare() {
                           <div className="flex flex-col items-center">
                             <div className="relative w-16 h-16 flex items-center justify-center">
                               <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
+                                <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-muted" />
                                 <circle
                                   cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="8" fill="transparent"
                                   strokeDasharray={2 * Math.PI * 28}
                                   strokeDashoffset={2 * Math.PI * 28 * (1 - score / 100)}
-                                  className={`${score > 85 ? 'text-emerald-500' : score > 70 ? 'text-amber-500' : 'text-red-500'} transition-all duration-1000`}
+                                  className={`${score > 85 ? 'text-primary' : score > 70 ? 'text-foreground' : 'text-destructive'} transition-all duration-1000`}
                                 />
                               </svg>
                               <span className="absolute text-lg font-bold">{score}%</span>

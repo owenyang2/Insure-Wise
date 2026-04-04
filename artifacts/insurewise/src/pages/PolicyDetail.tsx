@@ -65,7 +65,7 @@ export default function PolicyDetail() {
           <ArrowLeft className="w-4 h-4" /> Back to comparison
         </Link>
 
-        <div className="bg-white rounded-3xl p-8 md:p-12 border border-border shadow-xl shadow-blue-900/5 mb-8">
+        <div className="bg-card rounded-2xl p-8 md:p-12 border border-border shadow-xl shadow-black/20 mb-8">
           <h1 className="text-3xl font-display font-bold mb-4">AI Policy Breakdown</h1>
           <p className="text-lg text-muted-foreground leading-relaxed mb-8">
             {data.summary}
@@ -90,12 +90,12 @@ export default function PolicyDetail() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="flex flex-col md:flex-row gap-4 p-5 rounded-2xl border border-border bg-gray-50/50"
+                    className="flex flex-col md:flex-row gap-4 p-5 rounded-2xl border border-border bg-muted/50"
                   >
                     <div className="flex-shrink-0 mt-1">
-                      {item.status === 'covered' && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-                      {item.status === 'partial' && <AlertTriangle className="w-6 h-6 text-amber-500" />}
-                      {item.status === 'not_covered' && <XCircle className="w-6 h-6 text-red-500" />}
+                      {item.status === 'covered' && <CheckCircle2 className="w-6 h-6 text-primary" />}
+                      {item.status === 'partial' && <AlertTriangle className="w-6 h-6 text-foreground" />}
+                      {item.status === 'not_covered' && <XCircle className="w-6 h-6 text-destructive" />}
                     </div>
                     <div>
                       <h4 className="font-bold text-lg text-foreground mb-1">{item.requirement}</h4>
@@ -112,7 +112,7 @@ export default function PolicyDetail() {
               <h2 className="text-2xl font-bold font-display mb-6 border-b border-border pb-2">Jargon Translated</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {data.keyTerms.map((term, idx) => (
-                  <div key={idx} className="p-4 rounded-xl border border-border bg-white">
+                  <div key={idx} className="p-4 rounded-xl border border-border bg-card">
                     <h4 className="font-bold text-primary mb-1">{term.term}</h4>
                     <p className="text-sm text-muted-foreground">{term.definition}</p>
                   </div>
@@ -125,7 +125,7 @@ export default function PolicyDetail() {
       </main>
 
       {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.3)] z-50">
         <div className="container mx-auto px-4 py-4 max-w-5xl flex items-center justify-between">
           <div>
           </div>

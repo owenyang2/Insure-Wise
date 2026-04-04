@@ -33,19 +33,19 @@ interface OptimizationResult {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CATEGORY_META: Record<string, { icon: React.ReactNode; color: string; bg: string; border: string }> = {
-  location: { icon: <MapPin size={18} />, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
-  credit: { icon: <CreditCard size={18} />, color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" },
-  deductible: { icon: <Shield size={18} />, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-  bundling: { icon: <Package size={18} />, color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
-  vehicle: { icon: <Car size={18} />, color: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200" },
-  safety: { icon: <Zap size={18} />, color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
-  lifestyle: { icon: <Leaf size={18} />, color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
+  location: { icon: <MapPin size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  credit: { icon: <CreditCard size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  deductible: { icon: <Shield size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  bundling: { icon: <Package size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  vehicle: { icon: <Car size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  safety: { icon: <Zap size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
+  lifestyle: { icon: <Leaf size={18} />, color: "text-primary", bg: "bg-primary/5", border: "border-primary/20" },
 };
 
 const IMPACT_COLOR: Record<string, string> = {
-  high: "bg-red-100 text-red-700 border-red-200",
-  medium: "bg-amber-100 text-amber-700 border-amber-200",
-  low: "bg-green-100 text-green-700 border-green-200",
+  high: "bg-destructive/15 text-destructive border-destructive/20",
+  medium: "bg-accent text-foreground border-border",
+  low: "bg-primary/15 text-primary border-primary/20",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ export default function Optimizer() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="bg-white rounded-2xl border border-border shadow-md p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
+          className="bg-card rounded-2xl border border-border shadow-md p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -241,7 +241,7 @@ export default function Optimizer() {
               key="error"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-3 p-5 rounded-2xl bg-red-50 border border-red-200 text-red-700"
+              className="flex items-center gap-3 p-5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive"
             >
               <AlertCircle size={20} />
               <span>{error}</span>
@@ -257,9 +257,9 @@ export default function Optimizer() {
               className="space-y-6"
             >
               {/* Total savings banner */}
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white flex items-center justify-between gap-4 flex-wrap shadow-lg">
+              <div className="bg-primary rounded-2xl p-6 text-primary-foreground flex items-center justify-between gap-4 flex-wrap shadow-lg">
                 <div>
-                  <div className="text-sm font-medium opacity-80 mb-1">Potential monthly savings</div>
+                  <div className="text-sm font-medium opacity-80 mb-1">&gt; potential_monthly_savings</div>
                   <div className="text-4xl font-display font-bold">~${totalEstimatedSavings}/mo</div>
                   <div className="text-sm opacity-75 mt-1">if you act on all 5 recommendations</div>
                 </div>
@@ -300,7 +300,7 @@ export default function Optimizer() {
                               {tip.impact} impact
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 leading-relaxed mb-3">{tip.description}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{tip.description}</p>
 
                           {tip.profileField && tip.profileField !== "null" && (
                             <Link
@@ -314,7 +314,7 @@ export default function Optimizer() {
 
                         {/* Savings badge */}
                         <div className="shrink-0 text-right">
-                          <div className="text-xl font-bold text-emerald-600 whitespace-nowrap">${Number(tip.minSavings) || 0}–${Number(tip.maxSavings) || 0}/mo</div>
+                          <div className="text-xl font-bold text-primary whitespace-nowrap">${Number(tip.minSavings) || 0}–${Number(tip.maxSavings) || 0}/mo</div>
                           <div className="text-xs text-muted-foreground">est. savings</div>
                         </div>
                       </div>

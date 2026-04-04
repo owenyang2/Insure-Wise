@@ -115,18 +115,18 @@ export default function Profile() {
           </h1>
           <button
             onClick={handleLogout}
-            className="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 text-sm font-medium"
+            className="px-4 py-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 text-sm font-medium"
           >
             <LogOut className="w-4 h-4" /> Reset Session
           </button>
         </div>
 
         {/* Profile Form */}
-        <div className="bg-white rounded-3xl border border-border shadow-xl shadow-blue-900/5 p-8">
+        <div className="bg-card rounded-2xl border border-border shadow-xl shadow-black/20 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -156,7 +156,7 @@ export default function Profile() {
 
                     return (
                       <div key={key} className={isColSpan2 ? "md:col-span-2" : ""}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 truncate">
+                        <label className="block text-sm font-medium text-foreground mb-2 truncate">
                           {formatLabel(key)}
                         </label>
                         <input

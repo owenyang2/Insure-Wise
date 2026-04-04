@@ -505,19 +505,19 @@ export default function Onboarding() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl shadow-blue-900/5 border border-border flex-1 flex flex-col overflow-hidden">
+          <div className="bg-card rounded-2xl shadow-xl shadow-black/20 border border-border flex-1 flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border bg-gray-50/50 flex items-center gap-4">
+            <div className="px-6 py-4 border-b border-border bg-background/50 flex items-center gap-4">
               <img
                 src={`${import.meta.env.BASE_URL}images/avatar-ai.png`}
                 alt="AI Avatar"
-                className="w-12 h-12 rounded-full border-2 border-primary/20 bg-white object-cover"
+                className="w-12 h-12 rounded-full border-2 border-primary/20 bg-card object-cover"
               />
               <div>
                 <h2 className="font-bold text-lg text-foreground">InsureWise Assistant</h2>
-                <p className="text-sm flex items-center gap-1.5 text-emerald-600">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Online
+                <p className="text-sm flex items-center gap-1.5 text-primary">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  ONLINE
                 </p>
               </div>
               {isParsing && (
@@ -525,13 +525,13 @@ export default function Onboarding() {
                   <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
                   <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
                   <div className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
-                  Analyzing your answer...
+                  parsing input...
                 </div>
               )}
               {isAskingExpert && (
-                <div className="flex items-center gap-2 text-indigo-500 text-sm pl-4 animate-pulse font-medium">
+                <div className="flex items-center gap-2 text-primary text-sm pl-4 animate-pulse font-medium">
                   <Sparkles className="w-4 h-4 animate-spin-slow" />
-                  Moorcheh AI is researching your question...
+                  moorcheh-ai querying knowledge base...
                 </div>
               )}
             </div>
@@ -547,25 +547,25 @@ export default function Onboarding() {
                     transition={{ duration: 0.25 }}
                     className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
                   >
-                    <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm ${
-                        msg.role === "user" 
-                          ? "bg-primary text-white" 
+                    <div className={`w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center text-sm ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
                           : msg.variant === "expert"
-                            ? "bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200"
+                            ? "bg-primary/15 text-primary shadow-sm border border-primary/30"
                           : msg.variant === "parser"
-                            ? "bg-emerald-100 text-emerald-600 shadow-sm border border-emerald-200"
+                            ? "bg-accent text-primary shadow-sm border border-border"
                             : "bg-primary/10 text-primary"
                       }`}>
                       {msg.role === "user" ? <UserIcon size={16} /> : msg.variant === "expert" ? <Sparkles size={16} /> : msg.variant === "parser" ? <Wand2 size={16} /> : <Bot size={16} />}
                     </div>
-                    <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                    <div className={`max-w-[80%] px-4 py-3 rounded-xl text-sm leading-relaxed ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground rounded-tr-sm"
                         : msg.variant === "expert"
-                          ? "bg-indigo-50 text-indigo-950 rounded-tl-sm border border-indigo-100"
+                          ? "bg-primary/5 text-foreground rounded-tl-sm border border-primary/20"
                         : msg.variant === "parser"
-                          ? "bg-emerald-50 text-emerald-950 rounded-tl-sm border border-emerald-100"
-                          : "bg-gray-100 text-foreground rounded-tl-sm border border-border/50"
+                          ? "bg-accent text-foreground rounded-tl-sm border border-border"
+                          : "bg-muted text-foreground rounded-tl-sm border border-border/50"
                       }`}>
                       {msg.content}
                     </div>
@@ -582,7 +582,7 @@ export default function Onboarding() {
                   <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary">
                     <Bot size={16} />
                   </div>
-                  <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-gray-100 border border-border/50 text-foreground text-sm flex items-center gap-2">
+                  <div className="px-4 py-3 rounded-xl rounded-tl-sm bg-muted border border-border/50 text-foreground text-sm flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin text-muted-foreground delay-0" />
                     <span className="text-muted-foreground animate-pulse">Analyzing your answer...</span>
                   </div>
@@ -595,10 +595,10 @@ export default function Onboarding() {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex gap-3"
                 >
-                  <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center bg-emerald-100 text-emerald-600">
+                  <div className="w-9 h-9 rounded-lg flex-shrink-0 flex items-center justify-center bg-primary/15 text-primary">
                     <Check size={16} />
                   </div>
-                  <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
+                  <div className="px-4 py-3 rounded-xl rounded-tl-sm bg-primary/5 border border-primary/20 text-primary text-sm flex items-center gap-2">
                     <Loader2 size={14} className="animate-spin" />
                     Building your profile and finding matches...
                   </div>
@@ -611,7 +611,7 @@ export default function Onboarding() {
 
             {/* Suggestions + Input */}
             {!isComplete && currentQuestion && (
-              <div className="border-t border-border bg-white p-4 space-y-3">
+              <div className="border-t border-border bg-card p-4 space-y-3">
                 {/* Suggestion chips */}
                 {currentQuestion.suggestions && (
                   <div className="flex flex-wrap gap-2">
@@ -625,9 +625,9 @@ export default function Onboarding() {
                             key={s}
                             whileTap={{ scale: 0.96 }}
                             onClick={() => handleSuggestionClick(s)}
-                            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${isActive
-                              ? "bg-primary text-white border-primary"
-                              : "bg-white text-foreground border-border hover:border-primary hover:text-primary"
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isActive
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-foreground border-border hover:border-primary hover:text-primary"
                               }`}
                           >
                             {currentQuestion.multiSelect && isActive && (
@@ -643,24 +643,24 @@ export default function Onboarding() {
 
                 {/* AI Routing Toggle */}
                 <div className="flex flex-col gap-1 mb-2">
-                  <div className="flex bg-gray-100 p-1 rounded-full w-fit">
+                  <div className="flex bg-muted p-1 rounded-lg w-fit">
                     <button
                       onClick={() => setAiMode("auto")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'auto' ? 'bg-white shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${aiMode === 'auto' ? 'bg-card shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                     >
-                      <Gauge size={14} /> Auto
+                      <Gauge size={14} /> auto
                     </button>
                     <button
                       onClick={() => setAiMode("expert")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'expert' ? 'bg-indigo-50 shadow text-indigo-600' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${aiMode === 'expert' ? 'bg-primary/10 shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                     >
-                      <Sparkles size={14} /> Moorcheh
+                      <Sparkles size={14} /> moorcheh
                     </button>
                     <button
                       onClick={() => setAiMode("parser")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all ${aiMode === 'parser' ? 'bg-emerald-50 shadow text-emerald-600' : 'text-muted-foreground hover:text-foreground'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${aiMode === 'parser' ? 'bg-accent shadow text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                     >
-                      <Wand2 size={14} /> OpenAI
+                      <Wand2 size={14} /> openai
                     </button>
                   </div>
                   <p className="text-[11px] text-muted-foreground pl-2 italic">
@@ -680,7 +680,7 @@ export default function Onboarding() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={currentQuestion.placeholder || "Type your answer..."}
-                    className="w-full pl-5 pr-14 py-3.5 rounded-full bg-gray-50 border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm text-foreground"
+                    className="w-full pl-5 pr-14 py-3.5 rounded-lg bg-background border border-border focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-sm text-foreground"
                   />
                   <button
                     type="submit"
@@ -689,7 +689,7 @@ export default function Onboarding() {
                         ? selected.length === 0 && !input.trim()
                         : !input.trim()
                     }
-                    className="absolute right-2 p-2 rounded-full bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="absolute right-2 p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     <Send size={16} className="ml-0.5" />
                   </button>
@@ -708,12 +708,12 @@ export default function Onboarding() {
 
         {/* SIDEBAR */}
         <div className="w-80 hidden lg:flex flex-col gap-4">
-          <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-6 border border-blue-100 shadow-xl shadow-blue-900/5 flex-1 overflow-y-auto">
-            <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5" /> Captured Details
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-xl shadow-black/20 flex-1 overflow-y-auto">
+            <h3 className="font-bold text-primary mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5" /> captured_details
             </h3>
             {Object.keys(answers).length === 0 ? (
-              <p className="text-sm text-blue-800/60">I'll automatically extract your details here as we chat.</p>
+              <p className="text-sm text-muted-foreground">// data will appear here as we chat</p>
             ) : (
               <div className="space-y-3">
                 <AnimatePresence>
@@ -722,9 +722,9 @@ export default function Onboarding() {
                       key={k}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="bg-white rounded-xl p-3 shadow-sm border border-blue-100/50 relative group"
+                      className="bg-background rounded-lg p-3 shadow-sm border border-border relative group"
                     >
-                      <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider block mb-1">
+                      <span className="text-xs font-semibold text-primary/60 uppercase tracking-wider block mb-1">
                         {k.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
                       {editingKey === k ? (
@@ -734,20 +734,20 @@ export default function Onboarding() {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(k); }}
-                            className="w-full text-sm border border-blue-200 rounded px-2 py-1 outline-none"
+                            className="w-full text-sm border border-primary/30 rounded px-2 py-1 outline-none bg-background text-foreground"
                           />
-                          <button onClick={() => saveEdit(k)} className="text-xs bg-blue-500 text-white px-2 rounded">
+                          <button onClick={() => saveEdit(k)} className="text-xs bg-primary text-primary-foreground px-2 rounded">
                             Save
                           </button>
                         </div>
                       ) : (
                         <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium text-blue-950 block">{v as string}</span>
+                          <span className="text-sm font-medium text-foreground block">{v as string}</span>
                           <button
                             onClick={() => { setEditingKey(k); setEditValue(v as string); }}
-                            className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 transition-opacity"
+                            className="opacity-0 group-hover:opacity-100 text-xs text-primary transition-opacity"
                           >
-                            Edit
+                            edit
                           </button>
                         </div>
                       )}

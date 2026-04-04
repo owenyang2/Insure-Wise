@@ -6,14 +6,13 @@ import type { LucideIcon } from "lucide-react";
 interface Agent {
   text: string;
   icon: LucideIcon;
-  color: string;
 }
 
 const AGENTS: Agent[] = [
-  { text: "Price Agent scanning 40+ carriers...", icon: Search, color: "text-blue-500" },
-  { text: "Coverage Agent analyzing exclusions...", icon: ShieldAlert, color: "text-indigo-500" },
-  { text: "Ratings Agent verifying claim payouts...", icon: Star, color: "text-amber-500" },
-  { text: "Matching policies to your priorities...", icon: CheckCircle2, color: "text-emerald-500" },
+  { text: "> scanning 40+ carriers...", icon: Search },
+  { text: "> analyzing coverage exclusions...", icon: ShieldAlert },
+  { text: "> verifying claim payouts...", icon: Star },
+  { text: "> matching to your priorities...", icon: CheckCircle2 },
 ];
 
 export function LoadingAgents() {
@@ -50,8 +49,8 @@ export function LoadingAgents() {
           >
             {currentAgent && Icon && (
               <>
-                <Icon className={`w-5 h-5 ${currentAgent.color}`} />
-                <span className="text-lg font-medium text-foreground">
+                <Icon className="w-5 h-5 text-primary" />
+                <span className="text-lg font-medium text-primary">
                   {currentAgent.text}
                 </span>
               </>

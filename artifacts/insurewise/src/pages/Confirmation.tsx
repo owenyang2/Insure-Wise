@@ -26,9 +26,9 @@ export default function Confirmation() {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", bounce: 0.5 }}
-          className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-8"
+          className="w-24 h-24 bg-primary/15 rounded-full flex items-center justify-center mb-8"
         >
-          <CheckCircle className="w-12 h-12 text-emerald-600" />
+          <CheckCircle className="w-12 h-12 text-primary" />
         </motion.div>
 
         <h1 className="text-4xl font-display font-bold text-center mb-4">You're Covered!</h1>
@@ -36,14 +36,14 @@ export default function Confirmation() {
           {confirmationData.message}
         </p>
 
-        <div className="w-full max-w-2xl bg-white rounded-3xl border border-border shadow-xl shadow-blue-900/5 overflow-hidden mb-8">
-          <div className="bg-gray-50 px-8 py-6 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="w-full max-w-2xl bg-card rounded-2xl border border-border shadow-xl shadow-black/20 overflow-hidden mb-8">
+          <div className="bg-muted/50 px-8 py-6 border-b border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Policy Number</p>
               <p className="text-xl font-mono font-bold text-foreground">{confirmationData.policyNumber}</p>
             </div>
             <div className="text-right">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-sm font-medium">
                 Status: {confirmationData.status.replace('_', ' ').toUpperCase()}
               </span>
             </div>
@@ -62,7 +62,7 @@ export default function Confirmation() {
               </div>
             </div>
             
-            <div className="bg-gray-50 rounded-2xl p-6 border border-border flex flex-col justify-center text-center">
+            <div className="bg-muted/50 rounded-2xl p-6 border border-border flex flex-col justify-center text-center">
               <p className="text-sm flex items-center justify-center gap-2 text-muted-foreground mb-2"><CreditCard className="w-4 h-4" /> Monthly Premium</p>
               <p className="text-4xl font-bold text-primary">${confirmationData.monthlyPremium}</p>
             </div>
@@ -73,7 +73,7 @@ export default function Confirmation() {
             <ul className="grid sm:grid-cols-2 gap-3">
               {confirmationData.coverageSummary.map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
               ))}
@@ -82,7 +82,7 @@ export default function Confirmation() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <button className="px-8 py-3 rounded-xl bg-white border-2 border-border text-foreground font-semibold hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 shadow-sm">
+          <button className="px-8 py-3 rounded-xl bg-card border-2 border-border text-foreground font-semibold hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 shadow-sm">
             <Download className="w-4 h-4" /> Download Documents
           </button>
           <Link 
