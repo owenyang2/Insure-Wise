@@ -4,6 +4,11 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "setup": "bash setup.sh",
+    "dev": "npx concurrently -n api,web -c blue,green \"pnpm --filter @workspace/api-server run dev\" \"pnpm --filter @workspace/insurewise run dev\"",
+    "dev:api": "pnpm --filter @workspace/api-server run dev",
+    "dev:web": "pnpm --filter @workspace/insurewise run dev",
+    "db:push": "pnpm --filter @workspace/db run push",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
